@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-nginx-config
+  namespace: fairline
+data:
+  nginx.conf: |
+    events {}
+
+    http {
+        upstream user_auth_service {
+            server user-auth-service:8080;
+        }
+
+        upstream concert_service {
+            server concert-service:8080;
+        }
+
+        upstream queue_service {
+            server queue-service:8080;
+        }
+
+        upstream ticketing_service {
+            server ticketing-service:8080;
+        }
+
+        upstream payment_service {
+            server payment-service:8080;
+        }
+
+        server {
+            listen 80;
+
+            location = /api/users {
+                proxy_pass http://user_auth_service/api/users;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location ^~ /api/users/ {
+                proxy_pass http://user_auth_service;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location = /api/concerts {
+                proxy_pass http://concert_service/api/concerts;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location ^~ /api/concerts/ {
+                proxy_pass http://concert_service;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location = /api/ticketing {
+                proxy_pass http://queue_service/api/ticketing;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location ^~ /api/ticketing/ {
+                proxy_pass http://queue_service;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location ^~ /api/seats/ {
+                proxy_pass http://ticketing_service;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location ^~ /api/bookings/ {
+                proxy_pass http://ticketing_service;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location = /api/payments {
+                proxy_pass http://payment_service/api/payments;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location ^~ /api/payments/ {
+                proxy_pass http://payment_service;
+                proxy_set_header Host $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+        }
+    }
