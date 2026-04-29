@@ -3,19 +3,20 @@
 ## 클러스터 정보
 
 | 항목 | 값 |
-|------|-----|
+| --- | --- |
 | 클러스터 | EKS (ap-northeast-2) |
 | 노드 수 | 6개 (t3.medium × 5, g5.xlarge × 1) |
 | Namespace | fairline |
 | IngressClass | nginx |
 | Ingress NLB | k8s-ingressn-ingressn-449ade50b5-641f5d73ececedf9.elb.ap-northeast-2.amazonaws.com |
-| 도메인 | http://skala3-cloud1-team4.cloud.skala-ai.com |
+| 도메인 | [skala3-cloud1-team4.cloud.skala-ai.com](https://skala3-cloud1-team4.cloud.skala-ai.com) |
+| TLS | cert-manager (Let's Encrypt) — HTTPS 적용 완료 |
 
 ---
 
 ## 배포 구조
 
-```
+```text
 Internet
    │
    ▼
@@ -40,7 +41,7 @@ Internet
 Registry: `amdp-registry.skala-ai.com/skala25a`
 
 | 이미지 | 비고 |
-|--------|------|
+| --- | --- |
 | team4-frontend | Vite dev server, port 5173 |
 | team4-user-auth-service | Spring Boot, port 8080 |
 | team4-concert-service | Spring Boot, port 8080 |
@@ -55,7 +56,7 @@ Registry: `amdp-registry.skala-ai.com/skala25a`
 
 ## 파일 구조
 
-```
+```text
 fairline-k8s/
 ├── namespace.yaml
 ├── configmap.yaml
@@ -121,27 +122,27 @@ kubectl apply -f fairline-k8s/ingress.yaml
 
 ---
 
-## 현재 상태 (2026-04-28 안정화 완료)
+## 현재 상태 (2026-04-29 기준)
 
-| Pod | 상태 | Node |
-|-----|------|------|
-| frontend | Running ✅ | t3.medium |
-| gateway | Running ✅ | t3.medium |
-| user-auth-service | Running ✅ | t3.medium |
-| concert-service | Running ✅ | t3.medium |
-| queue-service | Running ✅ | t3.medium |
-| ticketing-service | Running ✅ | t3.medium |
-| payment-service | Running ✅ | t3.medium |
-| postgres | Running ✅ | t3.medium |
-| redis | Running ✅ | t3.medium |
+| Pod | replicas | readinessProbe | Node |
+| --- | --- | --- | --- |
+| frontend | 2 | tcpSocket :5173 | t3.medium |
+| gateway | 2 | tcpSocket :80 | t3.medium |
+| user-auth-service | 2 | tcpSocket :8080 | t3.medium |
+| concert-service | 2 | tcpSocket :8080 | t3.medium |
+| queue-service | 2 | tcpSocket :8080 | t3.medium |
+| ticketing-service | 2 | tcpSocket :8080 | t3.medium |
+| payment-service | 2 | tcpSocket :8080 | t3.medium |
+| postgres | — | — | (RDS 교체 예정) |
+| redis | 1 | — | t3.medium |
 
 | PVC | 상태 |
-|-----|------|
+| --- | --- |
 | postgres-pvc | Bound (5Gi, ebs-sc) ✅ |
 
 | Ingress | 상태 |
-|---------|------|
-| fairline-ingress | Running ✅ (NLB 연결, 도메인 접속 확인) |
+| --- | --- |
+| fairline-ingress | Running ✅ (NLB + TLS, HTTPS 접속 확인) |
 
 ---
 
@@ -149,13 +150,15 @@ kubectl apply -f fairline-k8s/ingress.yaml
 
 ### #1 — postgres CrashLoopBackOff
 
-**원인**
-```
+**원인:** EBS 마운트 포인트에 `lost+found` 디렉터리가 존재해 `initdb` 실패
+
+```text
 initdb: error: directory "/var/lib/postgresql/data" exists but is not empty
 initdb: detail: It contains a lost+found directory (EBS mount point)
 ```
 
-**조치** `infra/postgres/deployment.yaml`에 `PGDATA` 서브디렉터리 설정 추가
+**조치:** `infra/postgres/deployment.yaml`에 `PGDATA` 서브디렉터리 설정 추가
+
 ```yaml
 - name: PGDATA
   value: /var/lib/postgresql/data/pgdata
@@ -165,13 +168,13 @@ initdb: detail: It contains a lost+found directory (EBS mount point)
 
 ### #2 — Harbor ImagePullBackOff (플랫폼 불일치)
 
-**원인**
-```
+**원인:** Mac(ARM)에서 빌드된 이미지를 EKS(amd64) 노드에서 pull 불가
+
+```text
 no match for platform in manifest: not found
 ```
-Mac(ARM)에서 빌드된 이미지를 EKS(amd64) 노드에서 pull 불가.
 
-**조치** `docker buildx --push` 대신 `docker build + docker push` 분리 방식으로 `--platform linux/amd64` 빌드
+**조치:** `docker buildx --push` 대신 `docker build + docker push` 분리 방식으로 `--platform linux/amd64` 빌드
 
 ```bash
 # Spring Boot 서비스 (루트에서 실행)
@@ -188,31 +191,31 @@ docker build --no-cache --platform linux/amd64 \
 
 ### #3 — gateway liveness probe 실패 (CrashLoopBackOff)
 
-**원인** `httpGet /` → 404 (nginx.conf에 `/` 라우팅 없음) → probe 실패 반복
+**원인:** `httpGet /` → 404 (nginx.conf에 `/` 라우팅 없음) → probe 실패 반복
 
-**조치** `gateway/deployment.yaml` livenessProbe를 `httpGet` → `tcpSocket`으로 변경
+**조치:** `gateway/deployment.yaml` livenessProbe를 `httpGet` → `tcpSocket`으로 변경
 
 ---
 
 ### #4 — frontend OOMKilled
 
-**원인** Vite dev server 메모리 한도 256Mi 초과
+**원인:** Vite dev server 메모리 한도 256Mi 초과
 
-**조치** `frontend/deployment.yaml` 메모리 limits 256Mi → 1Gi 상향
+**조치:** `frontend/deployment.yaml` 메모리 limits 256Mi → 1Gi 상향
 
 ---
 
 ### #5 — frontend Blocked request (allowedHosts)
 
-**원인** Vite 5.x 보안 기능으로 외부 도메인 접근 차단
+**원인:** Vite 5.x 보안 기능으로 외부 도메인 접근 차단
 
-**조치** `frontend/vite.config.ts`에 `server.allowedHosts: true` 추가 후 `--no-cache` 재빌드
+**조치:** `frontend/vite.config.ts`에 `server.allowedHosts: true` 추가 후 `--no-cache` 재빌드
 
 ---
 
 ### #6 — 전체 Deployment GPU 노드 배치 방지
 
-**조치** 모든 Deployment에 `nodeAffinity` 추가 (g5.xlarge 제외)
+**조치:** 모든 Deployment에 `nodeAffinity` 추가 (g5.xlarge 제외)
 
 ```yaml
 affinity:
@@ -225,3 +228,21 @@ affinity:
               values:
                 - g5.xlarge
 ```
+
+---
+
+### #7 — RDS 연결 정보 반영 (2026-04-29)
+
+**조치:** `configmap.yaml` / `secret.yaml`에 RDS 엔드포인트, DB명, 계정 정보 업데이트 (postgres 컨테이너 → RDS 교체 예정)
+
+---
+
+### #8 — readinessProbe 추가 및 replica 조정 (2026-04-29)
+
+**조치:** 전체 서비스 replicas 1 → 2 (redis 제외), readinessProbe tcpSocket 방식 추가
+
+| 서비스 | port | initialDelaySeconds |
+| --- | --- | --- |
+| 백엔드 5개 서비스 | 8080 | 30 |
+| gateway | 80 | 10 |
+| frontend | 5173 | 15 |
