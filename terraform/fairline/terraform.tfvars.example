@@ -1,0 +1,25 @@
+aws_region                = "ap-northeast-2"
+name_prefix               = "fairline"
+environment               = "dev"
+vpc_id                    = "vpc-07177f4bb759e1fd3"
+db_subnet_group_name      = "eks-vpc-shared-rds-subnets"
+eks_node_security_group_id = "sg-06abf01dd54907a21"
+
+db_name               = "concert"
+db_master_username    = "fairline_admin"
+create_secrets_manager_secret = false
+create_db_parameter_group = true
+db_instance_class     = "db.t4g.micro"
+db_allocated_storage  = 20
+db_max_allocated_storage = 100
+db_engine_version     = "16.13"
+db_parameter_group_family = "postgres16"
+db_backup_retention_period = 7
+db_multi_az           = false
+db_publicly_accessible = false
+db_deletion_protection = false
+db_skip_final_snapshot = true
+
+common_tags = {
+  Owner = "team4"
+}
