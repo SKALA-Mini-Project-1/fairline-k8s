@@ -4,7 +4,7 @@ metadata:
   name: app-config
   namespace: fairline
 data:
-  DB_URL: "jdbc:postgresql://postgres:5432/concert"
+  DB_URL: "jdbc:postgresql://fairline-dev-postgres.c90c2ii6yx10.ap-northeast-2.rds.amazonaws.com:5432/concert"
   REDIS_HOST: "redis"
   REDIS_PORT: "6379"
   USER_AUTH_SERVICE_BASE_URL: "http://user-auth-service:8080"
