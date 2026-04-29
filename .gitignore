@@ -3,3 +3,4 @@
 *.tfstate.*
 terraform.tfvars
 terraform/fairline/terraform.tfvars
+secret.yaml
