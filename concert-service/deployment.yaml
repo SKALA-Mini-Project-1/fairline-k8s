@@ -29,6 +29,13 @@ spec:
           image: amdp-registry.skala-ai.com/skala25a/team4-concert-service:latest
           ports:
             - containerPort: 8080
+          env:
+            - name: DB_URL
+              value: "jdbc:postgresql://fairline-dev-postgres.c90c2ii6yx10.ap-northeast-2.rds.amazonaws.com:5432/concert?currentSchema=concert,public"
+            - name: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
+              value: "3"
+            - name: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
+              value: "1"
           envFrom:
             - configMapRef:
                 name: app-config
