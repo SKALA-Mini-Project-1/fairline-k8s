@@ -12,3 +12,5 @@ data:
   EMAIL_FROM_NAME: "Fairline Ticket Team"
   TOSS_API_BASE: "https://api.tosspayments.com"
   TOSS_CONFIRM_URL: "https://api.tosspayments.com/v1/payments/confirm"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  VITE_TOSS_CLIENT_KEY: "test_ck_eqRGgYO1r5gWZdeAvMLn3QnN2Eya"

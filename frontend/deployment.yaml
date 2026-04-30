@@ -30,6 +30,11 @@ spec:
           env:
             - name: VITE_API_BASE_URL
               value: ""
+            - name: VITE_TOSS_CLIENT_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: VITE_TOSS_CLIENT_KEY
           resources:
             requests:
               cpu: "100m"
