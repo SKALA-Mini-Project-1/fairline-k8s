@@ -7,5 +7,5 @@ spec:
   selector:
     app: incident-api
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 18088
+      targetPort: 18088
