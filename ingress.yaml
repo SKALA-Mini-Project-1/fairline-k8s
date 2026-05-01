@@ -31,7 +31,7 @@ spec:
               service:
                 name: incident-api
                 port:
-                  number: 8080
+                  number: 18088
           - path: /
             pathType: Prefix
             backend:

@@ -7,5 +7,5 @@ spec:
   selector:
     app: incident-detector
   ports:
-    - port: 8080
-      targetPort: 8080
+    - port: 18086
+      targetPort: 18086
