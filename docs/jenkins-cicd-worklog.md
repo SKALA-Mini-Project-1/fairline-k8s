@@ -195,6 +195,8 @@ kubectl exec -n fairline deployment/jenkins -c jenkins -- \
 - Jenkins GitHub token credential 등록 (`github-token`)
 - E2E 전체 흐름 검증 완료:
   - concert-service 코드 변경 → Jenkins 빌드 → ECR push (`:5ccfcb63`) → fairline-k8s 업데이트 → ArgoCD 자동 배포
+- `DOCKER_BUILDKIT=1` 환경변수 추가 — DEPRECATED legacy builder 경고 제거
+- `\${GITHUB_TOKEN}` 이스케이프 처리 — Groovy String interpolation 보안 경고 제거
 
 ---
 
@@ -212,41 +214,44 @@ kubectl exec -n fairline deployment/jenkins -c jenkins -- \
 - [x] Build & Deploy 병렬화 (순차 → parallel 블록)
 - [x] ArgoCD 도입 — GitOps 전환 완료
 - [x] CI→CD E2E 전체 흐름 검증 완료
-- [ ] BuildKit(buildx) 활성화 — DEPRECATED legacy builder 경고 제거
-- [ ] Groovy String interpolation 보안 경고 해결 (`GITHUB_TOKEN` 전달 방식 개선)
+- [x] BuildKit(buildx) 활성화 — `DOCKER_BUILDKIT=1` 환경변수 추가로 DEPRECATED 경고 제거
+- [x] Groovy String interpolation 보안 경고 해결 — `\${GITHUB_TOKEN}` 이스케이프 처리
 
 ---
 
 ## 다음 작업 순서
 
-### Step 1. BuildKit 활성화 🟡
+### Step 1. Secret 관리 개선 🟡
 
-DEPRECATED 경고 제거 및 빌드 성능 개선.
+**현재**: `secret.yaml` 수동 주입, example 파일만 repo에 존재
 
-```bash
-# Jenkins DinD 환경에서 buildx 설치 필요
-docker buildx create --use
-```
+**목표**: AWS Secrets Manager 또는 ExternalSecret Operator 연동
 
-Jenkinsfile에서 `docker build` → `docker buildx build` 변경.
+- ANTHROPIC_API_KEY, DB credentials, JWT_SECRET 관리 방식 통일
+- Jenkins Credentials도 동일 방식 검토
 
 ---
 
-### Step 2. Groovy String interpolation 보안 경고 해결 🟡
+### Step 2. Observability 기본 구성 🟡
 
-현재 `GITHUB_TOKEN`을 GString에 직접 삽입해 Jenkins 보안 경고 발생.
+**현재**: `kubectl logs` + probe 기반 1차 운영 수준
 
-```text
-Warning: A secret was passed to "sh" using Groovy String interpolation, which is insecure.
-```
+**목표**: Prometheus + Grafana 최소 구성
 
-`withCredentials` + 단일 인용부호 shell 방식으로 변경 필요:
+- `monitoring` namespace 생성
+- kube-prometheus-stack Helm 설치
+- Grafana 기본 대시보드 (CPU/메모리, HTTP 응답 시간)
+- 핵심 알람 설정 (Pod CrashLoop, 응답 지연 임계치)
 
-```groovy
-withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-    sh 'git clone https://x-access-token:${GITHUB_TOKEN}@github.com/...'
-}
-```
+---
+
+### Step 3. Autoscaling — KEDA / HPA 🟢
+
+**현재**: `replicas: 2` 고정
+
+- HPA 적용 대상 서비스 결정 (우선: queue-service, ticketing-service)
+- KEDA Kafka consumer lag 기반 스케일링 검토
+- 부하 테스트 기준치 설정 후 ScaledObject 또는 HPA 매니페스트 작성
 
 ---
 
