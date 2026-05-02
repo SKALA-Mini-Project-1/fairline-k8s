@@ -3,9 +3,12 @@ kind: Service
 metadata:
   name: incident-api
   namespace: fairline
+  labels:
+    monitoring: enabled
 spec:
   selector:
     app: incident-api
   ports:
-    - port: 18088
+    - name: http
+      port: 18088
       targetPort: 18088

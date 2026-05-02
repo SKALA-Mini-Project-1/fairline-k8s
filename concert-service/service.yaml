@@ -3,9 +3,12 @@ kind: Service
 metadata:
   name: concert-service
   namespace: fairline
+  labels:
+    monitoring: enabled
 spec:
   selector:
     app: concert-service
   ports:
-    - port: 8080
+    - name: http
+      port: 8080
       targetPort: 8080
