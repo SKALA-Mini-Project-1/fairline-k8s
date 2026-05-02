@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fairline
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SKALA-Mini-Project-1/fairline-k8s
+    targetRevision: HEAD
+    path: .
+    directory:
+      recurse: true
+      # jenkins, argocd 디렉토리는 ArgoCD가 관리하지 않음
+      exclude: '{argocd/**,jenkins/**}'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fairline
+  syncPolicy:
+    automated:
+      prune: false     # 기존 리소스 실수 삭제 방지 — 안정화 후 true로 변경
+      selfHeal: true   # 수동 변경 시 자동 복원
+    syncOptions:
+      - CreateNamespace=true
