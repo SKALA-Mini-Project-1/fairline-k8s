@@ -43,13 +43,15 @@ spec:
               cpu: "500m"
               memory: "1Gi"
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /
               port: 5173
             initialDelaySeconds: 20
             periodSeconds: 15
             failureThreshold: 3
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /
               port: 5173
             initialDelaySeconds: 15
             periodSeconds: 10

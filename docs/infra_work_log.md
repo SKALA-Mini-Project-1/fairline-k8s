@@ -23,6 +23,7 @@
 
 - 현재 저장소의 Kubernetes 매니페스트 점검
 - Terraform 기반 RDS 구성 점검
+- 실클러스터 기준 monitoring / autoscaling 현황 점검
 - 현재 인프라와 목표 인프라의 구분 기준 확정
 - 구현 여부 체크리스트 작성
 - 다음 작업자가 이어받을 수 있는 인수인계 메모 정리
@@ -47,15 +48,23 @@
 - [x] `kafka` 배포 매니페스트 확인
 - [x] Terraform 기반 PostgreSQL RDS 구성 확인
 - [x] RDS logical replication parameter group 구성 확인
+- [x] 실클러스터 `monitoring` namespace 존재 확인
+- [x] 실클러스터 Prometheus / Grafana 계열 workload 존재 확인
+- [x] 실클러스터 `keda` namespace 존재 확인
+- [x] 실클러스터 `HPA`, `ScaledObject` 부재 확인
+- [x] 실클러스터 `metrics-server` 및 metrics API 가용성 확인
+- [x] 주요 Spring 서비스가 Actuator는 포함하지만 Prometheus endpoint는 아직 미노출 상태임을 확인
 - [x] 서비스별 `replicas`, `livenessProbe`, `readinessProbe` 구성 확인
 - [x] 서비스별 GPU 노드 제외 `nodeAffinity` 구성 확인
 - [x] 서비스별 낮은 Hikari pool 제한 구성 확인
 
 ### 현재 미구현 또는 불완전 현황
 
-- KEDA 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- KEDA는 실클러스터 namespace가 존재하지만, 현재 `HPA` / `ScaledObject`는 없다.
 - HPA 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
-- Prometheus / Grafana / Loki / OTel 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- Prometheus / Grafana는 실클러스터에 존재하지만, `fairline-k8s` 저장소에서 배포 source를 확인하지 못했다.
+- Loki / OTel 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- 주요 Spring 서비스는 현재 `health`, `info` 중심의 Actuator만 노출하며, Prometheus scrape-ready 상태는 아니다.
 - Canary 관련 Argo Rollouts / Flagger 매니페스트는 현재 저장소에서 확인되지 않았다.
 - Debezium connector 매니페스트는 현재 저장소에서 확인되지 않았다.
 - `NetworkPolicy` 매니페스트는 현재 저장소에서 확인되지 않았다.
@@ -68,7 +77,13 @@
 - [ ] `Current Architecture` 다이어그램 초안 작성
 - [ ] `Target Architecture` 다이어그램 초안 작성
 - [ ] KEDA 도입 여부 확정 및 필요 시 매니페스트 반영
-- [ ] HPA 적용 대상 서비스 확정 및 매니페스트 반영
+- [x] HPA 1차 적용 대상 서비스 선정
+- [x] HPA 1차 매니페스트 초안 작성
+- [ ] HPA 적용 대상 서비스 최종 확정 및 클러스터 반영
+- [x] Monitoring 기준 문서 작성
+- [x] HPA 기준 문서 작성
+- [x] 주요 서비스 probe를 HTTP 기반으로 고도화 시작
+- [x] 주요 Spring 서비스의 Prometheus scrape 초안 구성
 - [ ] monitoring namespace 및 observability stack 구조 설계
 - [ ] Prometheus / Grafana / Loki / OTel 도입 범위 확정
 - [ ] Canary 배포 전략 채택 여부 확정
@@ -78,7 +93,7 @@
 - [ ] `ServiceAccount` / `IRSA` 필요 대상 정의 및 매니페스트 작성
 - [ ] Secret 관리 방식을 example 수동 주입에서 표준 운영 방식으로 전환
 - [ ] KEDA/HPA가 실제 클러스터나 다른 저장소에 존재하는지 확인
-- [ ] monitoring namespace 또는 observability stack의 실제 운영 여부 확인
+- [ ] monitoring stack의 Git source of truth 정리
 - [ ] Kafka가 현재 실사용인지, CDC 준비용인지 팀 기준 확정
 - [ ] Secret 실제 운영 방식 확인
 - [ ] in-cluster postgres 제거 여부와 제거 절차 확정
@@ -89,6 +104,16 @@
 ## 작업 대상 파일
 
 - [docs/infra_work_log.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/infra_work_log.md)
+- [docs/monitoring_work_log.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/monitoring_work_log.md)
+- [docs/hpa_work_log.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/hpa_work_log.md)
+- [monitoring/fairline-servicemonitor.yaml](/Users/jihyunpark/Desktop/fairline-k8s/monitoring/fairline-servicemonitor.yaml)
+- [hpa/frontend-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/frontend-hpa.yaml)
+- [hpa/gateway-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/gateway-hpa.yaml)
+- [hpa/user-auth-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/user-auth-service-hpa.yaml)
+- [hpa/concert-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/concert-service-hpa.yaml)
+- [hpa/queue-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/queue-service-hpa.yaml)
+- [hpa/ticketing-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/ticketing-service-hpa.yaml)
+- [hpa/payment-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/payment-service-hpa.yaml)
 - [README.md](/Users/jihyunpark/Desktop/fairline-k8s/README.md)
 - [namespace.yaml](/Users/jihyunpark/Desktop/fairline-k8s/namespace.yaml)
 - [ingress.yaml](/Users/jihyunpark/Desktop/fairline-k8s/ingress.yaml)
@@ -120,6 +145,12 @@
 - 2026-05-02: Observability, Autoscaling, Canary, Debezium CDC는 현재 저장소 기준 미구현 또는 부분 구현으로 정리했다.
 - 2026-05-02: 메인 인프라 아키텍처에 넣을 것과 목표 아키텍처 또는 별도 문서로 빼야 할 것을 구분했다.
 - 2026-05-02: 다음 작업자가 이어서 사용할 수 있도록 체크리스트, 오픈 이슈, 후속 작업 순서를 정리했다.
+- 2026-05-02: 실클러스터 기준 monitoring / autoscaling 현황을 반영해 `docs/monitoring_work_log.md`, `docs/hpa_work_log.md`를 작성했다.
+- 2026-05-02: `metrics-server`는 이미 준비되어 있고, 앱 메트릭 노출은 아직 Prometheus scrape-ready가 아니라는 점을 문서에 반영했다.
+- 2026-05-02: `frontend`, `gateway`, 주요 Spring 서비스의 probe를 TCP에서 HTTP health endpoint 기반으로 전환했고, `incident-detector`는 actuator 부재로 TCP를 유지했다.
+- 2026-05-02: `hpa/` 디렉터리에 CPU / memory 기반 1차 HPA 초안을 추가하고, DB 연결 여유를 고려해 보수적인 replica 상한을 적용했다.
+- 2026-05-02: Prometheus registry 의존성과 `ServiceMonitor` 초안을 추가해 주요 Spring 서비스의 메트릭 수집 기반을 준비했다.
+- 2026-05-02: 메트릭 노출은 코드 수정까지 포함하므로, 실제 scrape 확인 전 서비스 이미지 재빌드/재배포가 필요하다는 점을 작업 메모에 반영했다.
 
 ---
 
@@ -202,19 +233,18 @@
 
 ### 4.1 Observability
 
-- `monitoring` 네임스페이스 구성 확인 불가
-- Prometheus 매니페스트 없음
-- Grafana 매니페스트 없음
+- 실클러스터에는 `monitoring` 네임스페이스와 Prometheus / Grafana가 존재한다
+- 다만 `fairline-k8s` 저장소에는 Prometheus / Grafana 배포 source가 없다
 - Loki / Tempo / Jaeger / OTel Collector 매니페스트 없음
 - 메트릭 수집, 대시보드, 알람 규칙 문서 없음
-- 현재는 probe + `kubectl logs` + `kubectl describe` 중심의 1차 운영 수준
+- 현재는 실운영 스택은 일부 존재하지만, 저장소 기준 운영 표준과 문서화는 아직 부족하다
 
 ### 4.2 Autoscaling
 
 - `HorizontalPodAutoscaler` 매니페스트 없음
-- `KEDA` 관련 매니페스트 없음
+- `KEDA`는 실클러스터 namespace가 존재하지만 저장소에 관련 매니페스트는 없다
 - `ScaledObject` 없음
-- 트래픽 기반 HPA/KEDA가 실제 적용되었는지 저장소 기준으로 확인 불가
+- 실클러스터 기준 트래픽 기반 HPA/KEDA는 실제 적용되어 있지 않다
 - 부하 테스트 기준치와 스케일링 임계값 미정
 
 ### 4.3 Canary / Progressive Delivery

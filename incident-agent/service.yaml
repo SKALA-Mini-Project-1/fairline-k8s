@@ -3,9 +3,12 @@ kind: Service
 metadata:
   name: incident-agent
   namespace: fairline
+  labels:
+    monitoring: enabled
 spec:
   selector:
     app: incident-agent
   ports:
-    - port: 18087
+    - name: http
+      port: 18087
       targetPort: 18087
