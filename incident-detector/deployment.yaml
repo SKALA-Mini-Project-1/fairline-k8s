@@ -24,7 +24,7 @@ spec:
                       - g5.xlarge
       containers:
         - name: incident-detector
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-incident-detector:latest
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-incident-detector:e35bcfe3
           ports:
             - containerPort: 18086
           env:

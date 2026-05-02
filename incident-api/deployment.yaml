@@ -24,7 +24,7 @@ spec:
                       - g5.xlarge
       containers:
         - name: incident-api
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-incident-api:latest
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-incident-api:e35bcfe3
           ports:
             - containerPort: 18088
           env:
