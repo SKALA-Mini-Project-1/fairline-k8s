@@ -168,7 +168,33 @@ kubectl exec -n fairline deployment/jenkins -c jenkins -- \
 - 9개 서비스 전체 빌드 & ECR push & kubectl rollout 성공 (`Finished: SUCCESS`)
 - Build & Push Spring Services 스테이지 병렬화 (`parallel` 블록)
 - Deploy to EKS 스테이지 병렬화
-- 빌드 시간 목표: 순차 ~33분 → 병렬 이후 최초 전체 빌드 기준 대폭 단축 예상
+- 빌드 시간: 순차 ~33분 → 병렬 전환 후 변경 서비스 수에 비례하여 단축
+
+---
+
+### 2026-05-02 — ArgoCD 도입
+
+#### ArgoCD 도입 및 GitOps 파이프라인 전환
+
+#### ArgoCD 도입 — 주요 이슈 및 해결
+
+| 이슈 | 원인 | 해결 |
+| --- | --- | --- |
+| ArgoCD UI 404 | nginx rewrite-target과 server.rootpath 동시 설정으로 충돌 | rewrite-target 제거, rootpath만 사용하는 방식으로 수정 |
+| ArgoCD Deployment 리소스 미감지 | Application path: `.` 설정 시 하위 디렉토리 재귀 탐색 안 됨 | `directory.recurse: true` 추가 |
+
+##### 완료 항목
+
+- ArgoCD v3.3.9 설치 (argocd namespace)
+- ArgoCD UI Ingress 설정 (`/argocd` 경로, insecure 모드)
+- fairline Application 생성 — fairline-k8s repo → fairline namespace auto sync
+- Jenkinsfile GitOps 전환:
+  - `Deploy to EKS` 스테이지 제거
+  - `Update GitOps Repo` 스테이지 추가 (fairline-k8s deployment.yaml image tag 수정 & push)
+  - 이미지 태그 `:latest` → `:git-sha 8자리` 변경
+- Jenkins GitHub token credential 등록 (`github-token`)
+- E2E 전체 흐름 검증 완료:
+  - concert-service 코드 변경 → Jenkins 빌드 → ECR push (`:5ccfcb63`) → fairline-k8s 업데이트 → ArgoCD 자동 배포
 
 ---
 
@@ -184,46 +210,43 @@ kubectl exec -n fairline deployment/jenkins -c jenkins -- \
 - [x] webhook 자동 트리거 확인
 - [x] 9개 서비스 파이프라인 첫 실행 검증 (Finished: SUCCESS)
 - [x] Build & Deploy 병렬화 (순차 → parallel 블록)
-- [ ] **[다음] ArgoCD 도입** — Jenkins kubectl 직접 실행 방식에서 GitOps 전환
+- [x] ArgoCD 도입 — GitOps 전환 완료
+- [x] CI→CD E2E 전체 흐름 검증 완료
 - [ ] BuildKit(buildx) 활성화 — DEPRECATED legacy builder 경고 제거
+- [ ] Groovy String interpolation 보안 경고 해결 (`GITHUB_TOKEN` 전달 방식 개선)
 
 ---
 
 ## 다음 작업 순서
 
-### Step 1. ArgoCD 도입 (CD 파이프라인) 🔴 최우선
+### Step 1. BuildKit 활성화 🟡
 
-**현재 방식 문제점**:
+DEPRECATED 경고 제거 및 빌드 성능 개선.
 
-- Jenkins Pod에서 직접 `kubectl rollout restart` 실행 → Jenkins와 K8s 배포가 강하게 결합
-- 배포 이력이 Jenkins 로그에만 존재, Git에 기록 없음
-
-**전환 목표**:
-
-```text
-현재: Jenkins → ECR push → kubectl rollout restart
-목표: Jenkins → ECR push
-               → fairline-k8s deployment.yaml image tag 수정 & push
-     ArgoCD  → 변경 감지 → kubectl apply (자동 sync)
+```bash
+# Jenkins DinD 환경에서 buildx 설치 필요
+docker buildx create --use
 ```
 
-**작업 순서**:
+Jenkinsfile에서 `docker build` → `docker buildx build` 변경.
 
-1. ArgoCD 설치
+---
 
-   ```bash
-   kubectl create namespace argocd
-   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-   ```
+### Step 2. Groovy String interpolation 보안 경고 해결 🟡
 
-2. ArgoCD Application 생성 — `fairline-k8s` repo를 `fairline` namespace에 연결
-3. Jenkinsfile 수정:
-   - `Deploy to EKS` 스테이지 제거
-   - 빌드 후 `fairline-k8s/{svc}/deployment.yaml`의 image tag를 `git-sha`로 수정 & push
-4. ArgoCD auto sync 활성화 (또는 GitHub webhook 연결)
-5. ArgoCD UI Ingress 설정 (`/argocd` 경로)
+현재 `GITHUB_TOKEN`을 GString에 직접 삽입해 Jenkins 보안 경고 발생.
 
-**완료 기준**: `dev` 브랜치 push → Jenkins CI → fairline-k8s tag 업데이트 → ArgoCD 자동 반영
+```text
+Warning: A secret was passed to "sh" using Groovy String interpolation, which is insecure.
+```
+
+`withCredentials` + 단일 인용부호 shell 방식으로 변경 필요:
+
+```groovy
+withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+    sh 'git clone https://x-access-token:${GITHUB_TOKEN}@github.com/...'
+}
+```
 
 ---
 
