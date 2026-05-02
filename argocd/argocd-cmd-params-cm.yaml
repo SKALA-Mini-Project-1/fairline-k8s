@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+  namespace: argocd
+data:
+  # nginx ingress가 TLS를 처리하므로 ArgoCD 자체 TLS 비활성화
+  server.insecure: "true"
+  # /argocd 서브패스로 UI 접근
+  server.rootpath: "/argocd"

@@ -1,0 +1,232 @@
+<mxfile host="app.diagrams.net" modified="2026-05-02" version="24.0.0">
+  <diagram name="Fairline CI/CD" id="fairline-cicd">
+    <mxGraphModel dx="1280" dy="720" grid="0" gridSize="10" guides="1" tooltips="1"
+                  connect="1" arrows="1" fold="1" page="0"
+                  pageScale="1" pageWidth="1280" pageHeight="720"
+                  math="0" shadow="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ══════════ BACKGROUND ══════════ -->
+        <mxCell id="bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="1280" height="720" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════ TITLE ══════════ -->
+        <mxCell id="title" value="Fairline CI/CD Pipeline (Jenkins + ArgoCD)"
+          style="text;html=1;strokeColor=none;fillColor=none;align=center;
+                 fontSize=22;fontStyle=1;fontColor=#1e293b;"
+          vertex="1" parent="1">
+          <mxGeometry x="240" y="22" width="800" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════ SECTION LABELS ══════════ -->
+        <mxCell id="ci-box" value="" style="rounded=1;whiteSpace=wrap;html=1;
+          fillColor=#eff6ff;strokeColor=#93c5fd;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="30" y="68" width="780" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="ci-lbl" value="CI  —  Continuous Integration"
+          style="text;html=1;strokeColor=none;fillColor=none;
+                 fontSize=13;fontStyle=1;fontColor=#1d4ed8;align=left;"
+          vertex="1" parent="1">
+          <mxGeometry x="46" y="74" width="280" height="24" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cd-box" value="" style="rounded=1;whiteSpace=wrap;html=1;
+          fillColor=#f0fdf4;strokeColor=#86efac;strokeWidth=2;dashed=0;" vertex="1" parent="1">
+          <mxGeometry x="30" y="380" width="1220" height="290" as="geometry" />
+        </mxCell>
+        <mxCell id="cd-lbl" value="CD  —  Continuous Deployment  (GitOps / ArgoCD)"
+          style="text;html=1;strokeColor=none;fillColor=none;
+                 fontSize=13;fontStyle=1;fontColor=#15803d;align=left;"
+          vertex="1" parent="1">
+          <mxGeometry x="46" y="386" width="460" height="24" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════ CI ROW ══════════ -->
+
+        <!-- Developer -->
+        <mxCell id="dev" value="&#128104;&#8205;&#128187;&lt;br&gt;&lt;b&gt;Developer&lt;/b&gt;"
+          style="shape=mxgraph.cisco.users.user;html=1;pointerEvents=1;dashed=0;
+                 fillColor=#dbeafe;strokeColor=#3b82f6;strokeWidth=2;
+                 spacingTop=4;align=center;fontSize=12;fontColor=#1e3a8a;
+                 verticalLabelPosition=bottom;verticalAlign=top;"
+          vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="80" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- GitHub Source Repo -->
+        <mxCell id="github" value="&lt;b style='font-size:15px'&gt;&#128640;&lt;/b&gt;&lt;br&gt;&lt;b&gt;GitHub&lt;/b&gt;&lt;br&gt;SKALA-Mini-Project-2&lt;br&gt;&lt;font color='#15803d'&gt;branch: dev&lt;/font&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;
+                 fillColor=#1e293b;strokeColor=#334155;strokeWidth=2;
+                 fontColor=#f1f5f9;fontSize=11;align=center;
+                 arcSize=12;"
+          vertex="1" parent="1">
+          <mxGeometry x="220" y="120" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Jenkins -->
+        <mxCell id="jenkins" value="&lt;b style='font-size:15px'&gt;&#128295;&lt;/b&gt;&lt;br&gt;&lt;b&gt;Jenkins&lt;/b&gt;&lt;br&gt;Build &amp;amp; Push&lt;br&gt;&lt;font color='#fca5a5'&gt;EKS · fairline ns&lt;/font&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;
+                 fillColor=#7f1d1d;strokeColor=#ef4444;strokeWidth=2;
+                 fontColor=#fef2f2;fontSize=11;align=center;
+                 arcSize=12;"
+          vertex="1" parent="1">
+          <mxGeometry x="470" y="120" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- ECR -->
+        <mxCell id="ecr" value="&lt;b style='font-size:15px'&gt;&#128230;&lt;/b&gt;&lt;br&gt;&lt;b&gt;AWS ECR&lt;/b&gt;&lt;br&gt;Docker Registry&lt;br&gt;&lt;font color='#fde68a'&gt;team4-{svc}:git-sha&lt;/font&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;
+                 fillColor=#78350f;strokeColor=#f59e0b;strokeWidth=2;
+                 fontColor=#fef9c3;fontSize=11;align=center;
+                 arcSize=12;"
+          vertex="1" parent="1">
+          <mxGeometry x="720" y="120" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════ CI ARROWS ══════════ -->
+
+        <!-- Dev → GitHub -->
+        <mxCell id="e-dev-gh" value="&lt;b&gt;Commit Code&lt;/b&gt;&lt;br&gt;git push"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;
+                 exitX=1;exitY=0.5;exitDx=0;exitDy=0;
+                 entryX=0;entryY=0.5;entryDx=0;entryDy=0;
+                 dashed=1;dashPattern=6 3;strokeWidth=2;strokeColor=#3b82f6;
+                 fontColor=#1d4ed8;fontSize=10;fontStyle=1;align=center;"
+          edge="1" source="dev" target="github" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- GitHub → Jenkins -->
+        <mxCell id="e-gh-jenkins" value="&lt;b&gt;Webhook&lt;/b&gt;&lt;br&gt;push event"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;
+                 exitX=1;exitY=0.5;exitDx=0;exitDy=0;
+                 entryX=0;entryY=0.5;entryDx=0;entryDy=0;
+                 dashed=1;dashPattern=6 3;strokeWidth=2;strokeColor=#3b82f6;
+                 fontColor=#1d4ed8;fontSize=10;fontStyle=1;align=center;"
+          edge="1" source="github" target="jenkins" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Jenkins → ECR -->
+        <mxCell id="e-jenkins-ecr" value="&lt;b&gt;Build &amp;amp; Push&lt;/b&gt;&lt;br&gt;:git-sha tag"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;
+                 exitX=1;exitY=0.5;exitDx=0;exitDy=0;
+                 entryX=0;entryY=0.5;entryDx=0;entryDy=0;
+                 dashed=1;dashPattern=6 3;strokeWidth=2;strokeColor=#f59e0b;
+                 fontColor=#92400e;fontSize=10;fontStyle=1;align=center;"
+          edge="1" source="jenkins" target="ecr" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════ CD ROW ══════════ -->
+
+        <!-- fairline-k8s GitOps Repo -->
+        <mxCell id="gitops" value="&lt;b style='font-size:15px'&gt;&#128196;&lt;/b&gt;&lt;br&gt;&lt;b&gt;GitHub&lt;/b&gt;&lt;br&gt;fairline-k8s&lt;br&gt;&lt;font color='#86efac'&gt;GitOps Repo&lt;/font&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;
+                 fillColor=#14532d;strokeColor=#22c55e;strokeWidth=2;
+                 fontColor=#f0fdf4;fontSize=11;align=center;
+                 arcSize=12;"
+          vertex="1" parent="1">
+          <mxGeometry x="220" y="470" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- ArgoCD -->
+        <mxCell id="argocd" value="&lt;b style='font-size:15px'&gt;&#127806;&lt;/b&gt;&lt;br&gt;&lt;b&gt;Argo CD&lt;/b&gt;&lt;br&gt;GitOps Controller&lt;br&gt;&lt;font color='#a5f3fc'&gt;EKS · argocd ns&lt;/font&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;
+                 fillColor=#0c4a6e;strokeColor=#38bdf8;strokeWidth=2;
+                 fontColor=#e0f2fe;fontSize=11;align=center;
+                 arcSize=12;"
+          vertex="1" parent="1">
+          <mxGeometry x="530" y="470" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- EKS Cluster -->
+        <mxCell id="eks" value="&lt;b style='font-size:15px'&gt;&#9096;&lt;/b&gt;&lt;br&gt;&lt;b&gt;EKS Cluster&lt;/b&gt;&lt;br&gt;skala3-cloud1-team4&lt;br&gt;&lt;font color='#a5b4fc'&gt;namespace: fairline&lt;/font&gt;"
+          style="rounded=1;whiteSpace=wrap;html=1;
+                 fillColor=#1e1b4b;strokeColor=#818cf8;strokeWidth=2;
+                 fontColor=#e0e7ff;fontSize=11;align=center;
+                 arcSize=12;"
+          vertex="1" parent="1">
+          <mxGeometry x="840" y="420" width="370" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Services inside EKS -->
+        <mxCell id="svc1" value="concert · user-auth · queue · ticketing · payment"
+          style="text;html=1;strokeColor=none;fillColor=none;
+                 fontColor=#a5b4fc;fontSize=9;align=center;"
+          vertex="1" parent="1">
+          <mxGeometry x="848" y="515" width="354" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="svc2" value="incident-detector · incident-agent · incident-api · frontend"
+          style="text;html=1;strokeColor=none;fillColor=none;
+                 fontColor=#a5b4fc;fontSize=9;align=center;"
+          vertex="1" parent="1">
+          <mxGeometry x="848" y="535" width="354" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════ CD ARROWS ══════════ -->
+
+        <!-- Jenkins → fairline-k8s (Update image tag) -->
+        <mxCell id="e-jenkins-gitops" value="&lt;b&gt;Update image tag&lt;/b&gt;&lt;br&gt;deployment.yaml 수정 후 push"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;
+                 exitX=0.5;exitY=1;exitDx=0;exitDy=0;
+                 entryX=0.5;entryY=0;entryDx=0;entryDy=0;
+                 dashed=1;dashPattern=6 3;strokeWidth=2;strokeColor=#22c55e;
+                 fontColor=#15803d;fontSize=10;fontStyle=1;align=center;"
+          edge="1" source="jenkins" target="gitops" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="550" y="360" />
+              <mxPoint x="300" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- fairline-k8s → ArgoCD (Webhook Sync) -->
+        <mxCell id="e-gitops-argo-fwd" value="&lt;b&gt;Webhook Sync&lt;/b&gt;"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;
+                 exitX=1;exitY=0.4;exitDx=0;exitDy=0;
+                 entryX=0;entryY=0.4;entryDx=0;entryDy=0;
+                 dashed=1;dashPattern=6 3;strokeWidth=2;strokeColor=#38bdf8;
+                 fontColor=#0369a1;fontSize=10;fontStyle=1;align=center;"
+          edge="1" source="gitops" target="argocd" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ArgoCD → fairline-k8s (Poll) -->
+        <mxCell id="e-argo-gitops-back" value="&lt;b&gt;Poll&lt;/b&gt;"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;
+                 exitX=0;exitY=0.6;exitDx=0;exitDy=0;
+                 entryX=1;entryY=0.6;entryDx=0;entryDy=0;
+                 dashed=1;dashPattern=6 3;strokeWidth=2;strokeColor=#38bdf8;
+                 fontColor=#0369a1;fontSize=10;fontStyle=1;align=center;"
+          edge="1" source="argocd" target="gitops" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ArgoCD → EKS -->
+        <mxCell id="e-argo-eks" value="&lt;b&gt;kubectl apply&lt;/b&gt;&lt;br&gt;(Auto Sync)"
+          style="edgeStyle=orthogonalEdgeStyle;html=1;
+                 exitX=1;exitY=0.5;exitDx=0;exitDy=0;
+                 entryX=0;entryY=0.5;entryDx=0;entryDy=0;
+                 dashed=1;dashPattern=6 3;strokeWidth=2;strokeColor=#818cf8;
+                 fontColor=#4338ca;fontSize=10;fontStyle=1;align=center;"
+          edge="1" source="argocd" target="eks" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ══════════ FOOTNOTE ══════════ -->
+        <mxCell id="note" value="* 현재: Jenkins가 kubectl rollout restart 직접 실행  →  ArgoCD 도입 시 Jenkins는 image tag 업데이트만 담당"
+          style="text;html=1;strokeColor=none;fillColor=none;
+                 fontColor=#64748b;fontSize=10;align=center;fontStyle=2;"
+          vertex="1" parent="1">
+          <mxGeometry x="100" y="690" width="1080" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
