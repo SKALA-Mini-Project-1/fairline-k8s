@@ -60,8 +60,8 @@
 
 ### 현재 미구현 또는 불완전 현황
 
-- KEDA는 실클러스터 namespace가 존재하지만, 현재 `HPA` / `ScaledObject`는 없다.
-- HPA 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- KEDA는 실클러스터 namespace가 존재하고, 현재는 `queue-service`에 한해 적용을 시작하는 단계다.
+- HPA 관련 매니페스트는 현재 저장소에 존재하며, `queue-service`는 KEDA 기반으로 전환 중이다.
 - Prometheus / Grafana는 실클러스터에 존재하지만, `fairline-k8s` 저장소에서 배포 source를 확인하지 못했다.
 - Loki / OTel 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
 - 주요 Spring 서비스는 현재 `health`, `info` 중심의 Actuator만 노출하며, Prometheus scrape-ready 상태는 아니다.
@@ -76,10 +76,11 @@
 
 - [ ] `Current Architecture` 다이어그램 초안 작성
 - [ ] `Target Architecture` 다이어그램 초안 작성
-- [ ] KEDA 도입 여부 확정 및 필요 시 매니페스트 반영
+- [x] `queue-service` KEDA 도입 방향 확정
 - [x] HPA 1차 적용 대상 서비스 선정
 - [x] HPA 1차 매니페스트 초안 작성
-- [ ] HPA 적용 대상 서비스 최종 확정 및 클러스터 반영
+- [x] HPA 적용 대상 서비스 1차 클러스터 반영
+- [x] `queue-service` KEDA `ScaledObject` 초안 작성
 - [x] Monitoring 기준 문서 작성
 - [x] HPA 기준 문서 작성
 - [x] 주요 서비스 probe를 HTTP 기반으로 고도화 시작
@@ -107,11 +108,11 @@
 - [docs/monitoring_work_log.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/monitoring_work_log.md)
 - [docs/hpa_work_log.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/hpa_work_log.md)
 - [monitoring/fairline-servicemonitor.yaml](/Users/jihyunpark/Desktop/fairline-k8s/monitoring/fairline-servicemonitor.yaml)
+- [keda/queue-service-scaledobject.yaml](/Users/jihyunpark/Desktop/fairline-k8s/keda/queue-service-scaledobject.yaml)
 - [hpa/frontend-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/frontend-hpa.yaml)
 - [hpa/gateway-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/gateway-hpa.yaml)
 - [hpa/user-auth-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/user-auth-service-hpa.yaml)
 - [hpa/concert-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/concert-service-hpa.yaml)
-- [hpa/queue-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/queue-service-hpa.yaml)
 - [hpa/ticketing-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/ticketing-service-hpa.yaml)
 - [hpa/payment-service-hpa.yaml](/Users/jihyunpark/Desktop/fairline-k8s/hpa/payment-service-hpa.yaml)
 - [README.md](/Users/jihyunpark/Desktop/fairline-k8s/README.md)
@@ -151,6 +152,10 @@
 - 2026-05-02: `hpa/` 디렉터리에 CPU / memory 기반 1차 HPA 초안을 추가하고, DB 연결 여유를 고려해 보수적인 replica 상한을 적용했다.
 - 2026-05-02: Prometheus registry 의존성과 `ServiceMonitor` 초안을 추가해 주요 Spring 서비스의 메트릭 수집 기반을 준비했다.
 - 2026-05-02: 메트릭 노출은 코드 수정까지 포함하므로, 실제 scrape 확인 전 서비스 이미지 재빌드/재배포가 필요하다는 점을 작업 메모에 반영했다.
+- 2026-05-02: `fairline-apps` ServiceMonitor와 주요 Spring 서비스의 `/actuator/prometheus` 수집이 실제 Prometheus target에서 `up == 1`로 확인되었다.
+- 2026-05-02: `user-auth-service` HPA는 실부하 테스트에서 CPU 상승에 따라 `2 -> 3` scale out 되는 것을 확인했다.
+- 2026-05-02: `queue-service`는 코드 기준으로 대기열 입장과 entry token 발급을 담당하므로, native HPA보다 KEDA 기반 트래픽 autoscaling 후보로 재분류했다.
+- 2026-05-02: `queue-service`용 KEDA `ScaledObject`를 적용했고, 기존 native HPA 삭제 후 Prometheus request-rate 기반으로 `2 -> 3` scale out 되는 것을 확인했다.
 
 ---
 
