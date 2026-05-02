@@ -1,16 +1,125 @@
 # FairlineTicker Infra Work Log
 
-## 1. 문서 목적
+작성일: `2026-05-02`
+
+## 목적
 
 이 문서는 `fairlineticker` 서비스의 EKS 기반 Kubernetes 인프라 아키텍처를 정리하기 위한 작업 기준서이자 인수인계 문서다.
 
-목적은 아래 3가지다.
-
 - 현재 저장소 기준으로 이미 구현된 인프라와 아직 미구현인 인프라를 구분한다.
 - "최종 인프라 완성 상태"를 정의해서, 앞으로 무엇을 구현해야 하는지 기준을 고정한다.
-- 다른 프롬프트 창이나 다른 작업자에게 넘겨도 동일한 기준으로 작업이 이어지도록 현재 판단과 우선순위를 남긴다.
+- 다른 프롬프트 창이나 다른 작업자에게 넘겨도 동일한 기준으로 작업이 이어지도록 현재 판단, 우선순위, 오픈 이슈를 남긴다.
 
 기준 시점은 `2026-05-02`이며, 저장소 `fairline-k8s`의 실제 매니페스트와 문서를 기준으로 작성한다.
+
+## 작업 목표
+
+- `fairlineticker`의 현재 EKS 인프라 아키텍처를 실제 저장소 기준으로 다시 확정한다.
+- 현재 아키텍처와 목표 아키텍처를 분리해서 문서 신뢰도를 높인다.
+- Observability, Autoscaling, Canary, CDC처럼 아직 미완성인 축을 별도 추적 대상으로 고정한다.
+- 이후 아키텍처 다이어그램 작성과 구현 우선순위 논의의 기준 문서로 사용한다.
+
+## 현재 작업 범위
+
+- 현재 저장소의 Kubernetes 매니페스트 점검
+- Terraform 기반 RDS 구성 점검
+- 현재 인프라와 목표 인프라의 구분 기준 확정
+- 구현 여부 체크리스트 작성
+- 다음 작업자가 이어받을 수 있는 인수인계 메모 정리
+
+## 체크리스트
+
+### 문서 기준 정리
+
+- [x] 현재 인프라 아키텍처를 `Current Architecture`와 `Target Architecture`로 분리하는 원칙 정리
+- [x] 메인 인프라 아키텍처에 포함할 요소와 제외할 요소 기준 정리
+- [x] 최종 인프라 완성 상태 정의
+- [x] 우선순위와 오픈 이슈 정리
+- [x] 다음 프롬프트 창에서 이어갈 수 있는 인수인계 메모 작성
+
+### 현재 구현 확인 완료 항목
+
+- [x] `fairline` 네임스페이스 존재 확인
+- [x] NGINX Ingress + TLS 구성 확인
+- [x] `frontend`, `gateway`, 주요 백엔드 서비스 배포 매니페스트 확인
+- [x] `incident-api`, `incident-agent`, `incident-detector` 배포 매니페스트 확인
+- [x] `redis` 배포 매니페스트 확인
+- [x] `kafka` 배포 매니페스트 확인
+- [x] Terraform 기반 PostgreSQL RDS 구성 확인
+- [x] RDS logical replication parameter group 구성 확인
+- [x] 서비스별 `replicas`, `livenessProbe`, `readinessProbe` 구성 확인
+- [x] 서비스별 GPU 노드 제외 `nodeAffinity` 구성 확인
+- [x] 서비스별 낮은 Hikari pool 제한 구성 확인
+
+### 현재 미구현 또는 불완전 현황
+
+- KEDA 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- HPA 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- Prometheus / Grafana / Loki / OTel 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- Canary 관련 Argo Rollouts / Flagger 매니페스트는 현재 저장소에서 확인되지 않았다.
+- Debezium connector 매니페스트는 현재 저장소에서 확인되지 않았다.
+- `NetworkPolicy` 매니페스트는 현재 저장소에서 확인되지 않았다.
+- `PodDisruptionBudget` 매니페스트는 현재 저장소에서 확인되지 않았다.
+- `ServiceAccount` / `IRSA` 매니페스트는 현재 저장소에서 확인되지 않았다.
+- 저장소에는 `secret.yaml.example`만 있고, 실 운영 Secret 관리 방식은 이 문서만으로 확정할 수 없다.
+
+### 구현 작업 체크리스트
+
+- [ ] `Current Architecture` 다이어그램 초안 작성
+- [ ] `Target Architecture` 다이어그램 초안 작성
+- [ ] KEDA 도입 여부 확정 및 필요 시 매니페스트 반영
+- [ ] HPA 적용 대상 서비스 확정 및 매니페스트 반영
+- [ ] monitoring namespace 및 observability stack 구조 설계
+- [ ] Prometheus / Grafana / Loki / OTel 도입 범위 확정
+- [ ] Canary 배포 전략 채택 여부 확정
+- [ ] Debezium connector 및 CDC 운영 구조 설계
+- [ ] `NetworkPolicy` 적용 범위 정의 및 매니페스트 작성
+- [ ] `PodDisruptionBudget` 적용 대상 정의 및 매니페스트 작성
+- [ ] `ServiceAccount` / `IRSA` 필요 대상 정의 및 매니페스트 작성
+- [ ] Secret 관리 방식을 example 수동 주입에서 표준 운영 방식으로 전환
+- [ ] KEDA/HPA가 실제 클러스터나 다른 저장소에 존재하는지 확인
+- [ ] monitoring namespace 또는 observability stack의 실제 운영 여부 확인
+- [ ] Kafka가 현재 실사용인지, CDC 준비용인지 팀 기준 확정
+- [ ] Secret 실제 운영 방식 확인
+- [ ] in-cluster postgres 제거 여부와 제거 절차 확정
+- [ ] 백업/복구 runbook 초안 작성
+- [ ] Autoscaling 대상 서비스와 기준치 초안 작성
+- [ ] Outbox / CDC 연결 구조 최종안 정리
+
+## 작업 대상 파일
+
+- [docs/infra_work_log.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/infra_work_log.md)
+- [README.md](/Users/jihyunpark/Desktop/fairline-k8s/README.md)
+- [namespace.yaml](/Users/jihyunpark/Desktop/fairline-k8s/namespace.yaml)
+- [ingress.yaml](/Users/jihyunpark/Desktop/fairline-k8s/ingress.yaml)
+- [cert/cluster-issuer.yaml](/Users/jihyunpark/Desktop/fairline-k8s/cert/cluster-issuer.yaml)
+- [configmap.yaml](/Users/jihyunpark/Desktop/fairline-k8s/configmap.yaml)
+- [secret.yaml.example](/Users/jihyunpark/Desktop/fairline-k8s/secret.yaml.example)
+- [concert-service/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/concert-service/deployment.yaml)
+- [queue-service/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/queue-service/deployment.yaml)
+- [ticketing-service/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/ticketing-service/deployment.yaml)
+- [payment-service/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/payment-service/deployment.yaml)
+- [user-auth-service/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/user-auth-service/deployment.yaml)
+- [frontend/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/frontend/deployment.yaml)
+- [gateway/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/gateway/deployment.yaml)
+- [incident-api/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/incident-api/deployment.yaml)
+- [incident-agent/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/incident-agent/deployment.yaml)
+- [incident-detector/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/incident-detector/deployment.yaml)
+- [infra/redis/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/infra/redis/deployment.yaml)
+- [infra/kafka/deployment.yaml](/Users/jihyunpark/Desktop/fairline-k8s/infra/kafka/deployment.yaml)
+- [terraform/fairline/main.tf](/Users/jihyunpark/Desktop/fairline-k8s/terraform/fairline/main.tf)
+- [terraform/fairline/terraform.tfvars.example](/Users/jihyunpark/Desktop/fairline-k8s/terraform/fairline/terraform.tfvars.example)
+- [docs/npo-requirements.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/npo-requirements.md)
+- [docs/rds-worklog.md](/Users/jihyunpark/Desktop/fairline-k8s/docs/rds-worklog.md)
+
+## 작업 로그
+
+- 2026-05-02: `fairline-k8s` 저장소의 현재 Kubernetes 매니페스트와 Terraform 구성을 다시 점검했다.
+- 2026-05-02: 현재 아키텍처를 `Current Architecture`와 `Target Architecture`로 분리하는 기준을 확정했다.
+- 2026-05-02: 현재 실구현 범위에 `incident-*`, `redis`, `kafka`, `RDS`를 포함해야 한다는 판단을 문서에 반영했다.
+- 2026-05-02: Observability, Autoscaling, Canary, Debezium CDC는 현재 저장소 기준 미구현 또는 부분 구현으로 정리했다.
+- 2026-05-02: 메인 인프라 아키텍처에 넣을 것과 목표 아키텍처 또는 별도 문서로 빼야 할 것을 구분했다.
+- 2026-05-02: 다음 작업자가 이어서 사용할 수 있도록 체크리스트, 오픈 이슈, 후속 작업 순서를 정리했다.
 
 ---
 
