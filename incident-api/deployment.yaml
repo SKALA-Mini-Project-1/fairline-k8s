@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: concert-service
+  name: incident-api
   namespace: fairline
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: concert-service
+      app: incident-api
   template:
     metadata:
       labels:
-        app: concert-service
+        app: incident-api
     spec:
       affinity:
         nodeAffinity:
@@ -23,13 +23,13 @@ spec:
                     values:
                       - g5.xlarge
       containers:
-        - name: concert-service
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-concert-service:5ccfcb63
+        - name: incident-api
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-incident-api:latest
           ports:
-            - containerPort: 8080
+            - containerPort: 18088
           env:
             - name: DB_URL
-              value: "jdbc:postgresql://fairline-dev-postgres.c90c2ii6yx10.ap-northeast-2.rds.amazonaws.com:5432/concert?currentSchema=concert,public"
+              value: "jdbc:postgresql://fairline-dev-postgres.c90c2ii6yx10.ap-northeast-2.rds.amazonaws.com:5432/concert?currentSchema=incident,public"
             - name: SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE
               value: "3"
             - name: SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE
@@ -48,13 +48,13 @@ spec:
               memory: "1Gi"
           livenessProbe:
             tcpSocket:
-              port: 8080
+              port: 18088
             initialDelaySeconds: 60
             periodSeconds: 15
             failureThreshold: 3
           readinessProbe:
             tcpSocket:
-              port: 8080
+              port: 18088
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 3

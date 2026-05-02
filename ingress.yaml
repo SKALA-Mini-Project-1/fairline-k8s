@@ -25,6 +25,13 @@ spec:
                 name: gateway
                 port:
                   number: 80
+          - path: /ops/incidents
+            pathType: Prefix
+            backend:
+              service:
+                name: incident-api
+                port:
+                  number: 18088
           - path: /
             pathType: Prefix
             backend:
