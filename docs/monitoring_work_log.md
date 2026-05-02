@@ -58,7 +58,9 @@
 - [x] 1차 Prometheus scrape 대상 서비스 확정
 - [x] 1차 ServiceMonitor 매니페스트 초안 작성
 - [x] 주요 Spring 서비스의 `/actuator/prometheus` 노출 설정 초안 작성
-- [ ] 서비스별 `/actuator/prometheus` 실제 응답 확인
+- [x] 주요 Spring 서비스의 `/actuator/prometheus` 실제 응답 확인 시작
+- [x] Prometheus에서 `fairline-apps` scrape target 확인
+- [x] 느린 Spring 서비스 기동을 고려한 `startupProbe` 초안 추가
 - [ ] Ingress NGINX 메트릭 수집 경로 확정
 - [ ] Redis / Kafka exporter 사용 여부 확정
 - [ ] RDS CloudWatch 메트릭 연계 방식 확정
@@ -141,6 +143,9 @@
 - 주요 Spring 서비스에는 `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,prometheus`와 애플리케이션 태그 env를 추가했다.
 - `fairline` namespace 안에 `ServiceMonitor` 초안을 추가해 Prometheus Operator가 수집할 수 있는 구조를 만들었다.
 - 보안 설정이 있는 Spring 서비스는 `/actuator/prometheus`를 permit 하도록 코드 수정이 필요하며, 이번 작업에 반영했다.
+- `user-auth-service`는 실제로 `/actuator/prometheus`, `/actuator/health/readiness`, `/actuator/health/liveness` 응답이 모두 정상임을 확인했다.
+- Prometheus 쿼리 기준 `up`, `jvm_memory_used_bytes`, `hikaricp_connections`, `http_server_requests_seconds_count`가 `fairline` 서비스에서 실제 수집되는 것을 확인했다.
+- `user-auth-service`는 실제 기동에 약 `68초`가 걸려 초기 probe failure가 관찰되었고, 이를 완화하기 위해 주요 Spring 서비스에 `startupProbe`를 추가했다.
 
 ### 3. 데이터 / 메시징 레벨
 
@@ -237,7 +242,7 @@
 
 ### 1. Cluster Dashboard
 
-- 노드 6개의 CPU / memory 상태가 보이는가
+- 노드 8개의 CPU / memory 상태가 보이는가
 - `fairline` namespace 자원 사용량이 분리되어 보이는가
 - Pod restart / Pending / Failed 상태가 보이는가
 
@@ -258,6 +263,42 @@
 - RDS connection / CPU / latency가 보이는가
 - Redis memory / clients / evictions가 보이는가
 - Kafka broker / lag가 보이는가
+
+## 실측 확인 결과
+
+### 2026-05-02 Prometheus scrape 확인
+
+- `ServiceMonitor`:
+  - `fairline/fairline-apps` 존재 확인
+- Prometheus target:
+  - `user-auth-service`, `concert-service`, `queue-service`, `ticketing-service`, `payment-service`, `incident-api`, `incident-agent`가 `up == 1`
+- `user-auth-service` 직접 확인:
+  - `/actuator/prometheus` 응답 정상
+  - `/actuator/health/readiness` 응답 `UP`
+  - `/actuator/health/liveness` 응답 `UP`
+- 실제 수집 확인 메트릭 예시:
+  - `jvm_memory_used_bytes`
+  - `hikaricp_connections`
+  - `http_server_requests_seconds_count`
+
+즉 현재 기준으로 주요 Spring 서비스의 Prometheus 메트릭 수집 경로는 실클러스터에서 동작한다.
+
+### 2026-05-02 startupProbe 반영
+
+- 대상:
+  - `user-auth-service`
+  - `concert-service`
+  - `queue-service`
+  - `ticketing-service`
+  - `payment-service`
+  - `incident-api`
+  - `incident-agent`
+- probe 기준:
+  - `GET /actuator/health`
+  - `periodSeconds: 10`
+  - `failureThreshold: 12`
+- 목적:
+  - Spring Boot + DB + Redis 초기화가 긴 서비스가 초기 `liveness/readiness` 실패로 불필요하게 흔들리지 않도록 보호
 
 ### 5. Business Dashboard
 

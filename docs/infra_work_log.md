@@ -156,6 +156,7 @@
 - 2026-05-02: `user-auth-service` HPA는 실부하 테스트에서 CPU 상승에 따라 `2 -> 3` scale out 되는 것을 확인했다.
 - 2026-05-02: `queue-service`는 코드 기준으로 대기열 입장과 entry token 발급을 담당하므로, native HPA보다 KEDA 기반 트래픽 autoscaling 후보로 재분류했다.
 - 2026-05-02: `queue-service`용 KEDA `ScaledObject`를 적용했고, 기존 native HPA 삭제 후 Prometheus request-rate 기반으로 `2 -> 3` scale out 되는 것을 확인했다.
+- 2026-05-02: Spring 서비스 초기 기동 시간이 길어 초반 probe failure가 발생할 수 있어, 주요 Spring 서비스에 `startupProbe`를 추가했다.
 
 ---
 
