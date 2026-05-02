@@ -44,6 +44,12 @@ spec:
               value: "health,info,prometheus"
             - name: MANAGEMENT_METRICS_TAGS_APPLICATION
               value: "user-auth-service"
+            - name: MANAGEMENT_OBSERVATIONS_KEY_VALUES_NAMESPACE
+              value: "fairline"
+            - name: MANAGEMENT_TRACING_SAMPLING_PROBABILITY
+              value: "1.0"
+            - name: MANAGEMENT_OTLP_TRACING_ENDPOINT
+              value: "http://otel-collector.monitoring.svc.cluster.local:4318/v1/traces"
           envFrom:
             - configMapRef:
                 name: app-config
@@ -56,6 +62,12 @@ spec:
             limits:
               cpu: "500m"
               memory: "1Gi"
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            periodSeconds: 10
+            failureThreshold: 12
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
