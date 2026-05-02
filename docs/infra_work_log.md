@@ -63,8 +63,9 @@
 - KEDA는 실클러스터 namespace가 존재하고, 현재는 `queue-service`에 한해 적용을 시작하는 단계다.
 - HPA 관련 매니페스트는 현재 저장소에 존재하며, `queue-service`는 KEDA 기반으로 전환 중이다.
 - Prometheus / Grafana는 실클러스터에 존재하지만, `fairline-k8s` 저장소에서 배포 source를 확인하지 못했다.
-- Loki / OTel 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
-- 주요 Spring 서비스는 현재 `health`, `info` 중심의 Actuator만 노출하며, Prometheus scrape-ready 상태는 아니다.
+- Loki 관련 매니페스트는 현재 저장소에서 확인되지 않았다.
+- Tempo / OTel Collector / Grafana Tempo datasource / Fairline observability dashboard 초안은 현재 저장소에 추가되었다.
+- 주요 Spring 서비스는 이제 `prometheus` endpoint 노출과 `ServiceMonitor` 구성이 들어간 상태이며, fan-score / queue 비즈니스 메트릭과 tracing은 재배포 대기 상태다.
 - Canary 관련 Argo Rollouts / Flagger 매니페스트는 현재 저장소에서 확인되지 않았다.
 - Debezium connector 매니페스트는 현재 저장소에서 확인되지 않았다.
 - `NetworkPolicy` 매니페스트는 현재 저장소에서 확인되지 않았다.
@@ -85,6 +86,8 @@
 - [x] HPA 기준 문서 작성
 - [x] 주요 서비스 probe를 HTTP 기반으로 고도화 시작
 - [x] 주요 Spring 서비스의 Prometheus scrape 초안 구성
+- [x] fan-score / queue 비즈니스 메트릭 초안 추가
+- [x] Tempo / OTel Collector / Grafana Tempo datasource 초안 추가
 - [ ] monitoring namespace 및 observability stack 구조 설계
 - [ ] Prometheus / Grafana / Loki / OTel 도입 범위 확정
 - [ ] Canary 배포 전략 채택 여부 확정
@@ -144,6 +147,8 @@
 - 2026-05-02: 현재 아키텍처를 `Current Architecture`와 `Target Architecture`로 분리하는 기준을 확정했다.
 - 2026-05-02: 현재 실구현 범위에 `incident-*`, `redis`, `kafka`, `RDS`를 포함해야 한다는 판단을 문서에 반영했다.
 - 2026-05-02: Observability, Autoscaling, Canary, Debezium CDC는 현재 저장소 기준 미구현 또는 부분 구현으로 정리했다.
+- 2026-05-02: fan-score / queue 흐름을 우선 대상으로 custom metric과 OTLP tracing 초안을 추가했다.
+- 2026-05-02: `tracing/tempo.yaml`, `tracing/otel-collector.yaml`, `monitoring/tempo-datasource.yaml`, `monitoring/fairline-observability-dashboard.yaml`를 저장소에 추가했다.
 - 2026-05-02: 메인 인프라 아키텍처에 넣을 것과 목표 아키텍처 또는 별도 문서로 빼야 할 것을 구분했다.
 - 2026-05-02: 다음 작업자가 이어서 사용할 수 있도록 체크리스트, 오픈 이슈, 후속 작업 순서를 정리했다.
 - 2026-05-02: 실클러스터 기준 monitoring / autoscaling 현황을 반영해 `docs/monitoring_work_log.md`, `docs/hpa_work_log.md`를 작성했다.
@@ -241,7 +246,8 @@
 
 - 실클러스터에는 `monitoring` 네임스페이스와 Prometheus / Grafana가 존재한다
 - 다만 `fairline-k8s` 저장소에는 Prometheus / Grafana 배포 source가 없다
-- Loki / Tempo / Jaeger / OTel Collector 매니페스트 없음
+- Loki / Jaeger 매니페스트 없음
+- Tempo / OTel Collector / Grafana Tempo datasource / Fairline observability dashboard 초안은 현재 저장소에 추가됨
 - 메트릭 수집, 대시보드, 알람 규칙 문서 없음
 - 현재는 실운영 스택은 일부 존재하지만, 저장소 기준 운영 표준과 문서화는 아직 부족하다
 

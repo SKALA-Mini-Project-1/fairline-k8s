@@ -1,0 +1,260 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fairline-observability-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  fairline-observability.json: |
+    {
+      "annotations": {
+        "list": []
+      },
+      "editable": true,
+      "graphTooltip": 0,
+      "panels": [
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 0
+          },
+          "id": 1,
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_requests_seconds_count{namespace=\"fairline\",job=\"queue-service\",uri!~\"/actuator.*\"}[5m]))",
+              "legendFormat": "queue rps",
+              "refId": "A"
+            }
+          ],
+          "title": "Queue Request Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 0
+          },
+          "id": 2,
+          "targets": [
+            {
+              "expr": "sum by (result) (rate(fairline_queue_requests_total{application=\"queue-service\"}[5m]))",
+              "legendFormat": "{{result}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Queue Outcomes",
+          "type": "timeseries"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 8
+          },
+          "id": 3,
+          "targets": [
+            {
+              "expr": "sum by (result) (rate(fairline_queue_fan_score_lookups_total{application=\"queue-service\"}[5m]))",
+              "legendFormat": "{{result}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Queue Fan Score Lookup Outcomes",
+          "type": "timeseries"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 8
+          },
+          "id": 4,
+          "targets": [
+            {
+              "expr": "sum(rate(fairline_queue_fan_score_boost_millis_sum{application=\"queue-service\"}[5m])) / clamp_min(sum(rate(fairline_queue_fan_score_boost_millis_count{application=\"queue-service\"}[5m])), 1)",
+              "legendFormat": "avg boost millis",
+              "refId": "A"
+            }
+          ],
+          "title": "Queue Fan Score Boost",
+          "type": "timeseries"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 16
+          },
+          "id": 5,
+          "targets": [
+            {
+              "expr": "sum by (result) (increase(fairline_fan_score_sync_targets_total{application=\"ticketing-service\"}[15m]))",
+              "legendFormat": "{{result}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Ticketing Fan Score Sync Outcomes",
+          "type": "timeseries"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 16
+          },
+          "id": 6,
+          "targets": [
+            {
+              "expr": "sum by (result) (increase(fairline_fan_score_apply_total{application=\"user-auth-service\"}[15m]))",
+              "legendFormat": "{{result}}",
+              "refId": "A"
+            }
+          ],
+          "title": "User Auth Fan Score Apply",
+          "type": "timeseries"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 24
+          },
+          "id": 7,
+          "targets": [
+            {
+              "expr": "hikaricp_connections_active{application=\"user-auth-service\"}",
+              "legendFormat": "active",
+              "refId": "A"
+            },
+            {
+              "expr": "hikaricp_connections_idle{application=\"user-auth-service\"}",
+              "legendFormat": "idle",
+              "refId": "B"
+            },
+            {
+              "expr": "hikaricp_connections_max{application=\"user-auth-service\"}",
+              "legendFormat": "max",
+              "refId": "C"
+            }
+          ],
+          "title": "User Auth HikariCP",
+          "type": "timeseries"
+        },
+        {
+          "datasource": null,
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 24
+          },
+          "id": 8,
+          "targets": [
+            {
+              "expr": "sum by (id) (jvm_memory_used_bytes{application=\"user-auth-service\",area=\"heap\"})",
+              "legendFormat": "{{id}}",
+              "refId": "A"
+            }
+          ],
+          "title": "User Auth JVM Heap",
+          "type": "timeseries"
+        }
+      ],
+      "schemaVersion": 41,
+      "style": "dark",
+      "tags": [
+        "fairline",
+        "observability"
+      ],
+      "templating": {
+        "list": []
+      },
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "timezone": "browser",
+      "title": "Fairline Observability",
+      "version": 1
+    }
