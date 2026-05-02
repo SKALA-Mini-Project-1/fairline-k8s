@@ -15,6 +15,25 @@
 - 필수 메트릭, 대시보드, 알람 초안 정의
 - 부하 테스트와 연결되는 관측 포인트 정의
 
+## 현재 운영 중인 모니터링 도구
+
+실클러스터 `monitoring` namespace 기준으로 현재 확인된 도구는 아래와 같다.
+
+| 도구 | 현재 상태 | 역할 |
+| --- | --- | --- |
+| `Prometheus` | 운영 중 | 메트릭 수집 및 저장 |
+| `Grafana` | 운영 중 | 메트릭 시각화 |
+| `kube-state-metrics` | 운영 중 | Kubernetes object 상태 메트릭 제공 |
+| `node-exporter` | 운영 중 | 노드 CPU / 메모리 / 디스크 / 네트워크 메트릭 제공 |
+| `Prometheus Operator` | 운영 중 | `ServiceMonitor`, `PodMonitor`, `PrometheusRule` 관리 |
+| `Alertmanager` | CRD만 존재, 실제 리소스 없음 | 알람 전달 미구성 상태 |
+| `Loki` | 확인되지 않음 | 중앙 로그 스택 미구성 |
+| `Tempo` | 확인되지 않음 | 분산 트레이싱 미구성 |
+| `Jaeger` | 확인되지 않음 | 분산 트레이싱 미구성 |
+| `OpenTelemetry Collector` | 확인되지 않음 | 통합 수집 파이프라인 미구성 |
+
+즉 현재 기준으로는 `메트릭 중심 observability`는 일부 존재하지만, `로그`, `트레이싱`, `알람 체계`는 아직 미완성이다.
+
 ## 체크리스트
 
 ### 현재 상태 확인
@@ -184,6 +203,87 @@
 - payment success / fail
 - incident count
 
+## 현재 대시보드 상태와 우리가 추가로 확인해야 할 것
+
+실클러스터 Grafana는 `kube-prometheus-stack` 기본 대시보드 구성이 이미 들어가 있다.
+
+현재 확인된 기본 대시보드 범주:
+
+- cluster total
+- API server
+- CoreDNS
+- controller-manager / scheduler / etcd
+- node resource usage
+- pod / workload / namespace resource usage
+- kubelet
+- persistent volume usage
+- Grafana / Prometheus overview
+
+즉 지금 바로 볼 수 있는 것은:
+
+- 클러스터 자원 사용량
+- 노드 상태
+- 네임스페이스별 자원 사용량
+- Pod / workload 자원 추이
+
+아직 부족한 것은:
+
+- `fairline` 애플리케이션 전용 대시보드
+- path 기준 latency / error rate 대시보드
+- queue / booking / payment 비즈니스 대시보드
+- RDS / Redis / Kafka를 한 장에 모은 데이터 계층 대시보드
+
+## 우리가 실제로 확인해야 하는 대시보드 검증 항목
+
+### 1. Cluster Dashboard
+
+- 노드 6개의 CPU / memory 상태가 보이는가
+- `fairline` namespace 자원 사용량이 분리되어 보이는가
+- Pod restart / Pending / Failed 상태가 보이는가
+
+### 2. Ingress / API Dashboard
+
+- NGINX ingress request 수가 보이는가
+- `4xx`, `5xx`, latency가 path 또는 service 단위로 보이는가
+- `gateway`와 `frontend`의 트래픽 변화를 볼 수 있는가
+
+### 3. App Dashboard
+
+- `user-auth`, `concert`, `queue`, `ticketing`, `payment`, `incident-*` 메트릭이 개별 서비스별로 보이는가
+- JVM / request / error / DB pool 계열 메트릭이 보이는가
+- `/actuator/prometheus` 수집 이후 application tag가 구분되어 보이는가
+
+### 4. Data Dashboard
+
+- RDS connection / CPU / latency가 보이는가
+- Redis memory / clients / evictions가 보이는가
+- Kafka broker / lag가 보이는가
+
+### 5. Business Dashboard
+
+- queue depth
+- booking success / fail
+- payment success / fail
+- incident count
+
+이 다섯 축 중 현재 기본 Grafana로 바로 보이는 것은 `1번 일부`에 가깝고, 나머지는 우리가 추가로 구성해야 한다.
+
+## 대시보드 접근 및 확인 방법
+
+현재 `Grafana` ingress는 확인되지 않았으므로, 우선은 port-forward 기반 확인이 가장 현실적이다.
+
+예시:
+
+```bash
+kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
+```
+
+그 다음 브라우저에서:
+
+- `http://localhost:3000`
+
+을 열어 대시보드와 datasource를 확인한다.
+
 ## 필수 알람 초안
 
 - Pod CrashLoopBackOff 발생
@@ -217,6 +317,7 @@
 - 다만 `fairline-k8s` 저장소 안에는 monitoring 배포 source가 없으므로, "운영 중이긴 하나 Git source of truth는 아직 정리되지 않았다"는 상태로 보는 것이 맞다.
 - 앱 레벨에서는 아직 Prometheus scrape-ready 상태가 아니며, Actuator health/info 중심의 최소 노출만 확인되었다.
 - Prometheus Operator는 `release: kube-prometheus-stack` label의 `ServiceMonitor`를 수집하도록 설정되어 있다.
+- 현재 Grafana는 기본 kube-prometheus-stack 대시보드는 갖고 있지만, Fairline 전용 앱/비즈니스 대시보드는 아직 없는 상태로 보는 것이 맞다.
 - 다만 실제 scrape 성공까지는 서비스 이미지 재빌드 및 재배포가 필요하다.
 - 따라서 다음 단계는 "현재 대시보드가 있다"에서 끝내지 말고, 어떤 지표를 공식적으로 볼지 문서화하고 저장소 기준 관리 방식을 정하는 것이다.
 
@@ -245,3 +346,4 @@
 - 2026-05-02: Prometheus Operator의 `ServiceMonitor` selector를 확인하고, `release: kube-prometheus-stack` 기준 1차 `ServiceMonitor` 초안을 추가했다.
 - 2026-05-02: 주요 Spring 서비스의 Prometheus endpoint 노출을 위한 env와 service label/port name 구성을 추가했다.
 - 2026-05-02: Spring 서비스 코드에 Prometheus registry 의존성과 `/actuator/prometheus` 보안 허용을 추가했다.
+- 2026-05-02: 실클러스터 기준 현재 운영 중인 observability 도구를 다시 확인했고, Grafana 기본 대시보드 범주와 미구성 항목을 정리했다.
