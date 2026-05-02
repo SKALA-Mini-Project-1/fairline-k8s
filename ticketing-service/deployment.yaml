@@ -24,7 +24,7 @@ spec:
                       - g5.xlarge
       containers:
         - name: ticketing-service
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-ticketing-service:e35bcfe3
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-ticketing-service:b20cdedb
           ports:
             - containerPort: 8080
           env:
