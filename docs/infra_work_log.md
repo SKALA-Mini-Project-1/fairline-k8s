@@ -1,0 +1,345 @@
+# FairlineTicker Infra Work Log
+
+## 1. 문서 목적
+
+이 문서는 `fairlineticker` 서비스의 EKS 기반 Kubernetes 인프라 아키텍처를 정리하기 위한 작업 기준서이자 인수인계 문서다.
+
+목적은 아래 3가지다.
+
+- 현재 저장소 기준으로 이미 구현된 인프라와 아직 미구현인 인프라를 구분한다.
+- "최종 인프라 완성 상태"를 정의해서, 앞으로 무엇을 구현해야 하는지 기준을 고정한다.
+- 다른 프롬프트 창이나 다른 작업자에게 넘겨도 동일한 기준으로 작업이 이어지도록 현재 판단과 우선순위를 남긴다.
+
+기준 시점은 `2026-05-02`이며, 저장소 `fairline-k8s`의 실제 매니페스트와 문서를 기준으로 작성한다.
+
+---
+
+## 2. 현재 판단 요약
+
+현재 `fairlineticker`의 인프라 아키텍처는 이미 문서화할 수 있다.
+다만 한 장의 완성형 아키텍처로 그리기보다 아래 두 장으로 나누는 것이 맞다.
+
+- `Current Architecture`
+  현재 EKS 위에서 실제로 배포되었거나, 저장소 기준으로 배포 구성이 존재하는 구성
+- `Target Architecture`
+  아직 구현되지 않았지만 최종적으로 도입을 목표로 하는 운영 고도화 구성
+
+이 원칙을 지켜야 하는 이유는 다음과 같다.
+
+- Observability, KEDA, Canary, Debezium CDC가 아직 완성되지 않았더라도 현재 인프라 아키텍처 자체는 충분히 설명 가능하다.
+- 아직 없는 구성까지 현재 아키텍처에 넣으면 문서 신뢰도가 떨어진다.
+- 발표, 보고, 설계 리뷰 시 "현재 운영 상태"와 "목표 상태"를 분리해야 질문 대응이 쉬워진다.
+
+---
+
+## 3. 현재 구현된 인프라 범위
+
+### 3.1 Kubernetes / Runtime
+
+현재 저장소 기준으로 확인되는 주요 런타임 구성은 아래와 같다.
+
+- EKS 클러스터
+- `fairline` 네임스페이스
+- NGINX Ingress 기반 외부 진입
+- `cert-manager` + Let's Encrypt TLS
+- `frontend`
+- `gateway`
+- `user-auth-service`
+- `concert-service`
+- `ticketing-service`
+- `payment-service`
+- `queue-service`
+- `incident-api`
+- `incident-agent`
+- `incident-detector`
+- `redis`
+- `kafka`
+- PostgreSQL RDS 연동
+
+### 3.2 현재 아키텍처에 반드시 넣어야 하는 요소
+
+현재 아키텍처 다이어그램에는 아래 요소를 실선 기준으로 포함한다.
+
+- Internet / Domain
+- Ingress
+- TLS 발급 흐름
+- Frontend
+- Gateway
+- 주요 백엔드 서비스
+- Incident 관련 서비스
+- Redis
+- Kafka
+- RDS
+- 서비스별 replica, probe, resource limit 같은 기본 운영 설정이 존재한다는 사실
+
+### 3.3 현재 구현된 운영 안정성 요소
+
+현재 저장소 기준으로 이미 반영된 운영성/복원력 관련 요소는 아래와 같다.
+
+- 다수 서비스가 `replicas: 2`로 운영된다.
+- 서비스별 `livenessProbe`, `readinessProbe`가 정의되어 있다.
+- GPU 노드 제외용 `nodeAffinity`가 적용되어 있다.
+- RDS는 logical replication 활성화가 가능하도록 parameter group이 구성되어 있다.
+- RDS automated backup retention 값이 정의되어 있다.
+- 서비스별 Hikari pool 제한값이 낮게 잡혀 있어 소형 RDS connection exhaustion 리스크를 줄이고 있다.
+
+이 상태는 "운영 고도화가 완성되었다"는 뜻은 아니지만, "최소 운영 가능한 구조"는 이미 성립했다는 뜻이다.
+
+---
+
+## 4. 아직 미구현이거나 불완전한 항목
+
+현재 저장소 기준으로 아래 항목은 미구현 또는 부분 구현 상태로 본다.
+
+### 4.1 Observability
+
+- `monitoring` 네임스페이스 구성 확인 불가
+- Prometheus 매니페스트 없음
+- Grafana 매니페스트 없음
+- Loki / Tempo / Jaeger / OTel Collector 매니페스트 없음
+- 메트릭 수집, 대시보드, 알람 규칙 문서 없음
+- 현재는 probe + `kubectl logs` + `kubectl describe` 중심의 1차 운영 수준
+
+### 4.2 Autoscaling
+
+- `HorizontalPodAutoscaler` 매니페스트 없음
+- `KEDA` 관련 매니페스트 없음
+- `ScaledObject` 없음
+- 트래픽 기반 HPA/KEDA가 실제 적용되었는지 저장소 기준으로 확인 불가
+- 부하 테스트 기준치와 스케일링 임계값 미정
+
+### 4.3 Canary / Progressive Delivery
+
+- Argo Rollouts 없음
+- Flagger 없음
+- Canary 배포 정책 문서 없음
+- 현재 배포는 Rolling Update 중심으로 이해하는 것이 맞다
+
+### 4.4 Outbox / CDC
+
+- Outbox는 서비스 코드 측 구현이 일부 진행된 것으로 대화상 파악되지만, 이 저장소만으로는 전체 완료 여부를 검증할 수 없다
+- Debezium connector 매니페스트 없음
+- CDC publication / replication slot 운영 절차 문서 없음
+- Kafka는 존재하지만, CDC 파이프라인 전체가 완성되었다고 보기는 어렵다
+
+### 4.5 보안 / 운영 고도화
+
+- `secret.yaml` 실파일은 저장소에 없고 `secret.yaml.example`만 존재한다
+- ExternalSecret / SealedSecret / AWS Secrets Manager 연동 운영 패턴은 아직 완성되지 않았다
+- `NetworkPolicy` 없음
+- `PodDisruptionBudget` 없음
+- `ServiceAccount` / `IRSA` 매니페스트 없음
+
+---
+
+## 5. 최종 인프라 완성 상태 정의
+
+이 문서에서 정의하는 `최종 인프라 완성 상태`는 아래 조건을 만족하는 상태다.
+
+### 5.1 필수 완료 조건
+
+- EKS 위에서 핵심 서비스가 안정적으로 배포되고 자동 복구된다.
+- RDS, Redis, Kafka를 포함한 핵심 인프라 의존성이 문서와 실제 구성에서 일치한다.
+- 현재 아키텍처와 목표 아키텍처가 문서로 분리되어 있으며, 팀원 누구나 이해 가능하다.
+- 서비스별 health check와 운영 절차가 정리되어 있다.
+- 최소한의 장애 진단 절차가 문서화되어 있다.
+
+### 5.2 운영 고도화 완료 조건
+
+- 중앙 로그 수집 경로가 존재한다.
+- 메트릭 수집과 대시보드가 존재한다.
+- 주요 장애에 대한 알람 기준이 정의된다.
+- autoscaling 기준과 적용 대상 서비스가 정리된다.
+- 부하 테스트 결과를 바탕으로 replica, resource, scaling 기준이 조정된다.
+
+### 5.3 이벤트 기반 확장 완료 조건
+
+- Outbox 발행 구조가 서비스별로 정리된다.
+- CDC 대상이 business table 전체가 아니라 `outbox_event` 중심으로 정리된다.
+- Kafka topic, connector, consumer 책임이 문서화된다.
+- cross-schema 직접 조회를 줄이는 방향이 확정된다.
+
+### 5.4 보안 및 운영 표준 완료 조건
+
+- Secret 주입 방식이 example 수동 관리 수준을 넘어서 표준화된다.
+- 백업과 복구 절차가 문서화된다.
+- 인프라 변경 이력과 운영 절차가 반복 가능한 형태로 정리된다.
+
+---
+
+## 6. 아키텍처 문서에 넣을 것과 빼야 할 것
+
+### 6.1 메인 인프라 아키텍처에 넣을 것
+
+아래 항목은 메인 인프라 아키텍처 문서에 포함한다.
+
+- EKS
+- Namespace
+- Ingress
+- TLS
+- Frontend
+- Gateway
+- Backend services
+- Incident services
+- Redis
+- Kafka
+- RDS
+- 기본 배포 방식이 Rolling Update라는 사실
+- probe 기반 기본 복원력
+
+### 6.2 메인 아키텍처에는 "현재 상태"로 넣지 말 것
+
+아래 항목은 현재 아키텍처에 실선으로 넣지 않는다.
+
+- Canary 배포
+- KEDA
+- HPA
+- Prometheus / Grafana / Loki / OTel
+- Debezium connector
+- 알람 체계
+- 세부 부하 테스트 결과
+
+이 항목들은 아래 둘 중 하나로 처리한다.
+
+- `Target Architecture`의 점선 영역으로 표현
+- 별도 운영 고도화 문서로 분리
+
+### 6.3 별도 문서로 빼는 것이 더 좋은 주제
+
+- Canary 배포 전략
+- Autoscaling 정책과 부하 테스트
+- Observability stack 상세
+- CDC connector 운영 구조
+- SLO / SLA / Alert 정책
+
+---
+
+## 7. 우선순위 판단
+
+현재 시점에서 구현 우선순위는 아래처럼 둔다.
+
+1. 현재 아키텍처 문서 최신화
+2. Secret 관리 방식 정리
+3. 장애 복구/운영 절차 문서화
+4. Observability 최소 설계 확정
+5. Autoscaling 적용 여부 결정
+6. Outbox / CDC 확장 설계 고정
+7. Canary 도입 검토
+
+이 순서를 택하는 이유는 다음과 같다.
+
+- 현재 아키텍처 문서가 먼저 정리되어야 이후 운영 고도화 논의가 흔들리지 않는다.
+- Secret, 복구, 운영 절차는 지금 당장 아키텍처 신뢰도와 운영 리스크에 직접 영향을 준다.
+- Observability와 Autoscaling은 중요하지만, 현재 운영 구조를 설명하기 위한 선행조건은 아니다.
+- Canary는 현재 런타임 구조보다 배포 전략 성격이 강하므로 후순위가 맞다.
+
+---
+
+## 8. 현재 기준 권장 결정
+
+### 8.1 NPO 관련 결정
+
+`장애 복구 및 복원력`, `운영성`, `관측성`은 아키텍처 문서 작성의 필수 선행 완료 조건은 아니다.
+
+다만 문서에는 아래처럼 구분해서 적는 것이 좋다.
+
+- 현재 상태:
+  probe, rollout, 로그 기반 운영
+- 목표 상태:
+  중앙 로그, 메트릭, 대시보드, 알람, 복구 표준화
+
+즉, 이 영역은 "완성되어야만 아키텍처를 그릴 수 있는 요소"가 아니라 "현재 수준과 목표 수준을 구분해서 표시해야 하는 요소"다.
+
+### 8.2 Canary 관련 결정
+
+Canary는 현재 메인 인프라 아키텍처의 필수 구성요소로 보지 않는다.
+
+권장 처리 방식은 아래와 같다.
+
+- 메인 아키텍처에서는 Rolling Update 운영 중이라고 명시
+- Canary는 `향후 배포 전략 고도화` 항목으로 별도 분리
+
+### 8.3 Observability 관련 결정
+
+Observability는 메인 인프라 아키텍처에 아예 제외하는 것이 아니라, 아래처럼 다룬다.
+
+- 현재 아키텍처:
+  probes, logs, kubectl 기반 운영만 표시
+- 목표 아키텍처:
+  monitoring namespace, metrics, logs, dashboard, alert를 점선 박스로 표시
+
+### 8.4 HPA / KEDA 관련 결정
+
+HPA/KEDA는 실제 매니페스트가 확인되기 전까지 현재 아키텍처에 넣지 않는다.
+
+권장 표현은 아래와 같다.
+
+- 현재:
+  static replica 운영
+- 목표:
+  traffic-based autoscaling via KEDA/HPA
+
+---
+
+## 9. 다음 작업 체크리스트
+
+다음 프롬프트 창에서 이어서 할 때는 아래 순서로 진행하는 것을 권장한다.
+
+### 9.1 문서 작업
+
+- `Current Architecture` 다이어그램 초안 작성
+- `Target Architecture` 다이어그램 초안 작성
+- README의 기존 배포 구조 그림과 실제 매니페스트 차이점 정리
+- `incident-*`, `kafka`, `RDS` 반영 여부 기준 통일
+
+### 9.2 구현/검증 작업
+
+- KEDA/HPA가 실제 다른 저장소나 클러스터에 존재하는지 확인
+- monitoring namespace 또는 observability stack의 실제 배포 여부 확인
+- in-cluster postgres 제거 여부와 현재 역할 재확인
+- Kafka가 현재 실사용인지, CDC 준비용인지 확인
+- Secret 주입의 실제 운영 방식 확인
+
+### 9.3 후속 설계 작업
+
+- 복구/장애 대응 runbook 초안 작성
+- autoscaling 대상 서비스 우선순위 선정
+- Outbox / CDC 최종 연결 구조 정리
+- Canary 도입 시점과 도입 범위 정리
+
+---
+
+## 10. 다른 작업자를 위한 인수인계 메모
+
+다른 프롬프트 창이나 다른 작업자가 이 문서를 읽고 이어서 작업할 경우, 아래 전제를 유지해야 한다.
+
+- 현재 저장소 기준으로는 Observability, KEDA, Canary, Debezium은 완성되지 않았다.
+- 따라서 메인 아키텍처는 "현재 실제 운영 구조"만 기준으로 먼저 작성해야 한다.
+- 목표 아키텍처는 별도 다이어그램으로 분리해야 한다.
+- 현재 기준 메인 아키텍처에 포함되는 핵심 인프라는 EKS, Ingress, TLS, Frontend, Gateway, Backend services, Incident services, Redis, Kafka, RDS다.
+- `README.md`의 배포 구조 그림은 최신 상태와 완전히 일치하지 않을 수 있다.
+- 이 문서의 목표는 "무엇이 이미 있고 무엇이 아직 없는지"에 대한 팀 내 판단 기준을 고정하는 것이다.
+
+---
+
+## 11. 현재 오픈 이슈
+
+- Kafka를 현재 운영 아키텍처의 핵심 요소로 볼지, 확장 준비 요소로 볼지 팀 합의 필요
+- KEDA/HPA가 실제 클러스터에는 있고 저장소에만 없는지 확인 필요
+- Observability stack이 다른 저장소에서 관리되는지 확인 필요
+- Secret 실제 운영 방식 확인 필요
+- in-cluster postgres를 완전히 제거할지 여부 결정 필요
+
+---
+
+## 12. 이 문서의 당장 사용 방법
+
+이 문서를 기준으로 앞으로는 아래 원칙으로 아키텍처 관련 작업을 진행한다.
+
+- 현재 구현된 것은 `Current`
+- 아직 목표인 것은 `Target`
+- 배포 전략은 별도
+- 운영 정책은 별도
+- 관측성은 현재 수준과 목표 수준을 분리
+
+이 기준이 유지되면, 앞으로 문서 작성, 발표 자료 작성, 구현 우선순위 정리, 후속 프롬프트 인수인계가 훨씬 쉬워진다.
