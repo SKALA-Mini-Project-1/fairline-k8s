@@ -31,6 +31,11 @@ data:
         server {
             listen 80;
 
+            location = /healthz {
+                access_log off;
+                return 200;
+            }
+
             location = /api/users {
                 proxy_pass http://user_auth_service/api/users;
                 proxy_set_header Host $host;
