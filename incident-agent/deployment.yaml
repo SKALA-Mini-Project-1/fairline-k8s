@@ -24,7 +24,7 @@ spec:
                       - g5.xlarge
       containers:
         - name: incident-agent
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-incident-agent:410c02a8
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-incident-agent:b476a2ef
           ports:
             - containerPort: 18087
           env:

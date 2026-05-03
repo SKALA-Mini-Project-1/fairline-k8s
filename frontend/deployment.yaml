@@ -24,7 +24,7 @@ spec:
                       - g5.xlarge
       containers:
         - name: frontend
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-frontend:a06c3378
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-frontend:b476a2ef
           ports:
             - containerPort: 5173
           env:
