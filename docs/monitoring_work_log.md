@@ -58,7 +58,9 @@
 - [x] 1차 Prometheus scrape 대상 서비스 확정
 - [x] 1차 ServiceMonitor 매니페스트 초안 작성
 - [x] 주요 Spring 서비스의 `/actuator/prometheus` 노출 설정 초안 작성
-- [ ] 서비스별 `/actuator/prometheus` 실제 응답 확인
+- [x] 주요 Spring 서비스의 `/actuator/prometheus` 실제 응답 확인 시작
+- [x] Prometheus에서 `fairline-apps` scrape target 확인
+- [x] 느린 Spring 서비스 기동을 고려한 `startupProbe` 초안 추가
 - [ ] Ingress NGINX 메트릭 수집 경로 확정
 - [ ] Redis / Kafka exporter 사용 여부 확정
 - [ ] RDS CloudWatch 메트릭 연계 방식 확정
@@ -141,6 +143,9 @@
 - 주요 Spring 서비스에는 `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE=health,info,prometheus`와 애플리케이션 태그 env를 추가했다.
 - `fairline` namespace 안에 `ServiceMonitor` 초안을 추가해 Prometheus Operator가 수집할 수 있는 구조를 만들었다.
 - 보안 설정이 있는 Spring 서비스는 `/actuator/prometheus`를 permit 하도록 코드 수정이 필요하며, 이번 작업에 반영했다.
+- `user-auth-service`는 실제로 `/actuator/prometheus`, `/actuator/health/readiness`, `/actuator/health/liveness` 응답이 모두 정상임을 확인했다.
+- Prometheus 쿼리 기준 `up`, `jvm_memory_used_bytes`, `hikaricp_connections`, `http_server_requests_seconds_count`가 `fairline` 서비스에서 실제 수집되는 것을 확인했다.
+- `user-auth-service`는 실제 기동에 약 `68초`가 걸려 초기 probe failure가 관찰되었고, 이를 완화하기 위해 주요 Spring 서비스에 `startupProbe`를 추가했다.
 
 ### 3. 데이터 / 메시징 레벨
 
@@ -237,7 +242,7 @@
 
 ### 1. Cluster Dashboard
 
-- 노드 6개의 CPU / memory 상태가 보이는가
+- 노드 8개의 CPU / memory 상태가 보이는가
 - `fairline` namespace 자원 사용량이 분리되어 보이는가
 - Pod restart / Pending / Failed 상태가 보이는가
 
@@ -258,6 +263,80 @@
 - RDS connection / CPU / latency가 보이는가
 - Redis memory / clients / evictions가 보이는가
 - Kafka broker / lag가 보이는가
+
+## 실측 확인 결과
+
+### 2026-05-02 Prometheus scrape 확인
+
+- `ServiceMonitor`:
+  - `fairline/fairline-apps` 존재 확인
+- Prometheus target:
+  - `user-auth-service`, `concert-service`, `queue-service`, `ticketing-service`, `payment-service`, `incident-api`, `incident-agent`가 `up == 1`
+- `user-auth-service` 직접 확인:
+  - `/actuator/prometheus` 응답 정상
+  - `/actuator/health/readiness` 응답 `UP`
+  - `/actuator/health/liveness` 응답 `UP`
+- 실제 수집 확인 메트릭 예시:
+  - `jvm_memory_used_bytes`
+  - `hikaricp_connections`
+  - `http_server_requests_seconds_count`
+
+즉 현재 기준으로 주요 Spring 서비스의 Prometheus 메트릭 수집 경로는 실클러스터에서 동작한다.
+
+### 2026-05-02 startupProbe 반영
+
+- 대상:
+  - `user-auth-service`
+  - `concert-service`
+  - `queue-service`
+  - `ticketing-service`
+  - `payment-service`
+  - `incident-api`
+  - `incident-agent`
+- probe 기준:
+  - `GET /actuator/health`
+  - `periodSeconds: 10`
+  - `failureThreshold: 12`
+- 목적:
+  - Spring Boot + DB + Redis 초기화가 긴 서비스가 초기 `liveness/readiness` 실패로 불필요하게 흔들리지 않도록 보호
+
+### 2026-05-02 queue / fan-score / tracing 관측성 확장
+
+- `queue-service`에 아래 비즈니스 메트릭 초안을 추가했다.
+  - `fairline.queue.requests`
+  - `fairline.queue.entry.tokens.issued`
+  - `fairline.queue.redis.failures`
+  - `fairline.queue.wait.position`
+  - `fairline.queue.fan_score.lookups`
+  - `fairline.queue.fan_score.boost.millis`
+- `ticketing-service`에 아래 팬점수 동기화 메트릭 초안을 추가했다.
+  - `fairline.fan_score.sync.requests`
+  - `fairline.fan_score.sync.targets`
+  - `fairline.fan_score.sync.batch.target.count`
+  - `fairline.fan_score.sync.batch.applied.count`
+- `user-auth-service`에 아래 팬점수 조회 / 반영 메트릭 초안을 추가했다.
+  - `fairline.fan_score.reads`
+  - `fairline.fan_score.apply`
+  - `fairline.fan_score.total.after.apply`
+- fan-score 흐름 우선 대상 서비스:
+  - `queue-service`
+  - `ticketing-service`
+  - `user-auth-service`
+  - `concert-service`
+- 위 서비스에는 OTLP tracing 초안을 위해 아래 의존성을 추가했다.
+  - `io.micrometer:micrometer-tracing-bridge-otel`
+  - `io.opentelemetry:opentelemetry-exporter-otlp`
+- Kubernetes 저장소에는 아래 tracing / 시각화 매니페스트 초안을 추가했다.
+  - `tracing/tempo.yaml`
+  - `tracing/otel-collector.yaml`
+  - `monitoring/tempo-datasource.yaml`
+  - `monitoring/fairline-observability-dashboard.yaml`
+- 앱 deployment 초안에는 아래 tracing env를 추가했다.
+  - `MANAGEMENT_TRACING_SAMPLING_PROBABILITY=1.0`
+  - `MANAGEMENT_OTLP_TRACING_ENDPOINT=http://otel-collector.monitoring.svc.cluster.local:4318/v1/traces`
+- RDS 연계 관점:
+  - 기존 `hikaricp_connections*`, `jdbc_connections*`와 새 비즈니스 메트릭을 함께 보면
+    팬점수 반영량과 DB connection 사용량을 서비스 단위로 연결해서 볼 수 있다.
 
 ### 5. Business Dashboard
 
@@ -318,7 +397,8 @@ kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
 - 앱 레벨에서는 아직 Prometheus scrape-ready 상태가 아니며, Actuator health/info 중심의 최소 노출만 확인되었다.
 - Prometheus Operator는 `release: kube-prometheus-stack` label의 `ServiceMonitor`를 수집하도록 설정되어 있다.
 - 현재 Grafana는 기본 kube-prometheus-stack 대시보드는 갖고 있지만, Fairline 전용 앱/비즈니스 대시보드는 아직 없는 상태로 보는 것이 맞다.
-- 다만 실제 scrape 성공까지는 서비스 이미지 재빌드 및 재배포가 필요하다.
+- 현재는 `fairline-observability-dashboard` 초안을 추가해 queue / fan-score / RDS 연계 지표를 한 화면에 묶기 시작했다.
+- tracing은 Tempo + OTel Collector 초안을 저장소에 추가한 상태이며, 실제 trace 시각화 확인까지는 서비스 이미지 재빌드 및 재배포가 필요하다.
 - 따라서 다음 단계는 "현재 대시보드가 있다"에서 끝내지 말고, 어떤 지표를 공식적으로 볼지 문서화하고 저장소 기준 관리 방식을 정하는 것이다.
 
 ## 작업 대상 파일
@@ -334,6 +414,10 @@ kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
 - [payment-service/service.yaml](/Users/jihyunpark/Desktop/fairline-k8s/payment-service/service.yaml)
 - [incident-api/service.yaml](/Users/jihyunpark/Desktop/fairline-k8s/incident-api/service.yaml)
 - [incident-agent/service.yaml](/Users/jihyunpark/Desktop/fairline-k8s/incident-agent/service.yaml)
+- [monitoring/tempo-datasource.yaml](/Users/jihyunpark/Desktop/fairline-k8s/monitoring/tempo-datasource.yaml)
+- [monitoring/fairline-observability-dashboard.yaml](/Users/jihyunpark/Desktop/fairline-k8s/monitoring/fairline-observability-dashboard.yaml)
+- [tracing/otel-collector.yaml](/Users/jihyunpark/Desktop/fairline-k8s/tracing/otel-collector.yaml)
+- [tracing/tempo.yaml](/Users/jihyunpark/Desktop/fairline-k8s/tracing/tempo.yaml)
 
 ## 작업 로그
 
@@ -347,3 +431,6 @@ kubectl port-forward svc/kube-prometheus-stack-grafana -n monitoring 3000:80
 - 2026-05-02: 주요 Spring 서비스의 Prometheus endpoint 노출을 위한 env와 service label/port name 구성을 추가했다.
 - 2026-05-02: Spring 서비스 코드에 Prometheus registry 의존성과 `/actuator/prometheus` 보안 허용을 추가했다.
 - 2026-05-02: 실클러스터 기준 현재 운영 중인 observability 도구를 다시 확인했고, Grafana 기본 대시보드 범주와 미구성 항목을 정리했다.
+- 2026-05-02: `queue-service`, `ticketing-service`, `user-auth-service`에 queue / fan-score 비즈니스 메트릭 초안을 추가했다.
+- 2026-05-02: `queue-service`, `ticketing-service`, `user-auth-service`, `concert-service`에 OTLP tracing 의존성 초안을 추가했다.
+- 2026-05-02: Tempo, OTel Collector, Grafana Tempo datasource, Fairline observability dashboard 초안을 저장소에 추가했다.

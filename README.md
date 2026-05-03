@@ -5,7 +5,7 @@
 | 항목 | 값 |
 | --- | --- |
 | 클러스터 | EKS (ap-northeast-2) |
-| 노드 수 | 6개 (t3.medium × 5, g5.xlarge × 1) |
+| 노드 수 | 8개 (t3.medium × 8, `gpu-ng` 미사용) |
 | Namespace | fairline |
 | IngressClass | nginx |
 | Ingress NLB | k8s-ingressn-ingressn-449ade50b5-641f5d73ececedf9.elb.ap-northeast-2.amazonaws.com |
