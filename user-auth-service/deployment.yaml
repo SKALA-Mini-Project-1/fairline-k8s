@@ -24,7 +24,7 @@ spec:
                       - g5.xlarge
       containers:
         - name: user-auth-service
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-user-auth-service:880082b5
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-user-auth-service:06e458a7
           ports:
             - containerPort: 8080
           env:
