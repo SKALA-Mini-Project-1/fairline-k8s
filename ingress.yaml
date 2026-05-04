@@ -18,13 +18,48 @@ spec:
     - host: skala3-cloud1-team4.cloud.skala-ai.com
       http:
         paths:
-          - path: /api
+          - path: /api/users
             pathType: Prefix
             backend:
               service:
-                name: gateway
+                name: user-auth-service
                 port:
-                  number: 80
+                  number: 8080
+          - path: /api/concerts
+            pathType: Prefix
+            backend:
+              service:
+                name: concert-service
+                port:
+                  number: 8080
+          - path: /api/ticketing
+            pathType: Prefix
+            backend:
+              service:
+                name: queue-service
+                port:
+                  number: 8080
+          - path: /api/seats
+            pathType: Prefix
+            backend:
+              service:
+                name: ticketing-service
+                port:
+                  number: 8080
+          - path: /api/bookings
+            pathType: Prefix
+            backend:
+              service:
+                name: ticketing-service
+                port:
+                  number: 8080
+          - path: /api/payments
+            pathType: Prefix
+            backend:
+              service:
+                name: payment-service
+                port:
+                  number: 8080
           - path: /ops/incidents
             pathType: Prefix
             backend:
