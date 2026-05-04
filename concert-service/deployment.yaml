@@ -24,7 +24,7 @@ spec:
                       - g5.xlarge
       containers:
         - name: concert-service
-          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-concert-service:410c02a8
+          image: 881490135253.dkr.ecr.ap-northeast-2.amazonaws.com/team4-concert-service:880082b5
           ports:
             - containerPort: 8080
           env:
